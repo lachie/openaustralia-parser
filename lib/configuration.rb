@@ -6,10 +6,12 @@ class Configuration
     :regmem_pdf_path, :base_dir
   
   @@conf = nil
+
   # Load the configuration
-  def global_conf
+  def self.global_conf
     @@conf ||= YAML.load_file( "#{File.dirname(__FILE__)}/../configuration.yml" ) || {}
   end
+  def global_conf; self.class.global_conf end
   
   def initialize
     # Load the information from the mysociety configuration
