@@ -1,9 +1,9 @@
 Given /^a parlinfo person page "([^\"]*)"$/ do |name|
-	@app.parlinfo.person_doc!(name)
+	@app.people_downloader.person_bio!(name)
 end
 
 Given /^an image of "([^\"]*)"$/ do |name|
-	@app.parlinfo.person_image!(name)
+	@app.people_downloader.person_image!(name)
 end
 
 When /^I extract the image$/ do

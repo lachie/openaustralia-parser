@@ -7,6 +7,10 @@ require 'mechanize'
 require 'configuration'
 
 class MechanizeProxyCache
+	cattr_accessor :perform_caching
+	self.perform_caching = true
+	def perform_caching?; self.class.perform_caching end
+
   # By setting cache_subdirectory can put cached files under a subdirectory in the html_cache_path
   attr_accessor :cache_subdirectory
   
@@ -63,7 +67,7 @@ class MechanizeProxyCache
   end
   
   def url_cached?(uri)
-    File.exists?(url_to_filename(uri))
+    perform_caching? && File.exists?(url_to_filename(uri))
   end
 
   def read_cache(uri)
@@ -77,12 +81,15 @@ class MechanizeProxyCache
   
   # Returns original page
   def write_cache(page)
-    filename = url_to_filename(page.uri)
-    FileUtils.mkdir_p(File.dirname(filename))
-    Zlib::GzipWriter.open(filename) do |file|
-      file.write(Marshal.dump(page))
-      file.close
-    end
+		if perform_caching?
+			filename = url_to_filename(page.uri)
+			FileUtils.mkdir_p(File.dirname(filename))
+			Zlib::GzipWriter.open(filename) do |file|
+				file.write(Marshal.dump(page))
+				file.close
+			end
+		end
+
     page
   end
   
