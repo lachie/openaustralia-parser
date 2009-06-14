@@ -1,5 +1,6 @@
 require 'period'
 require 'house'
+require 'name'
 
 class Person
   attr_reader :periods, :person_count, :name, :alternate_names, :minister_positions, :birthday, :aph_id
@@ -55,6 +56,18 @@ class Person
   
   def add_minister_position(params)
     @minister_positions << MinisterPosition.new(params.merge(:person => self))
+  end
+
+  # Returns all the unique variants of the name without any of the titles
+  def name_variants
+    names,simple_names = [],[]
+
+    all_names.each do |n|
+      names        << Name.new(:first => n.first, :middle => n.middle, :last => n.last).full_name
+      simple_names << Name.new(:first => n.first, :last => n.last).full_name
+    end
+
+    [ names, simple_names ].flatten.uniq
   end
   
   def ==(p)

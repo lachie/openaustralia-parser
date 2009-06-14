@@ -62,36 +62,24 @@ class PeopleImageDownloader
       page
     end
   end
+
+  # Each person can be looked up with a query like this:
+  # http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20John%20Smith
+  def biography_page_for_person(person)
+    # Check each variant of a person's name and return the biography page for the first one that exists
+    person.name_variants.each do |name|
+      if page = biography_page_for_person_with_name(name)
+        return page
+      end
+    end
+  end
   
   def each_person_bio_page(people)
     # Sort all the people by last name
     sorted_people = people.sort {|a, b| a.name.last <=> b.name.last}
 
-    # Each person can be looked up with a query like this:
-    # http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20John%20Smith
     sorted_people.each do |person|
- 
-      # Find all the unique variants of the name without any of the titles
-      name_variants = person.all_names.map do |n|
-        Name.new(:first => n.first, :middle => n.middle, :last => n.last).full_name
-      end.uniq
-
-      name_variants_no_middle_name = person.all_names.map do |n|
-        Name.new(:first => n.first, :last => n.last).full_name
-      end.uniq
-
-
-      # Check each variant of a person's name and return the biography page for the first one that exists
-      matching_name = name_variants.find {|n| biography_page_for_person_with_name(n)}
-      if matching_name.nil?
-        matching_name = name_variants_no_middle_name.find {|n| biography_page_for_person_with_name(n)}
-      end
-
-      page = biography_page_for_person_with_name(matching_name) if matching_name
-      if page.nil?
-        #puts "WARNING: No biography page found for #{name_variants.join(' or ')}"
-      else
-        #puts "Found biography page for #{person.name.full_name}"
+      if page = biography_page_for_person(person)
         yield page
       end
     end

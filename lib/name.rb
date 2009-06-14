@@ -12,12 +12,13 @@ class Name
     # First normalize the unicode.
     params.map {|key, value| [key, (value.mb_chars.normalize if value)]}
     
-    @title = params[:title] || ""
-    @first = (Name.capitalize_name(params[:first]) if params[:first]) || ""
-    @middle = (Name.capitalize_each_name(params[:middle]) if params[:middle]) || ""
-    @initials = (params[:initials].upcase if params[:initials]) || ""
-    @post_title = (params[:post_title].upcase if params[:post_title]) || ""
-    @last = (Name.capitalize_each_name(params[:last]) if params[:last]) || ""
+    @title      = params[:title]                                                          || ""
+    @first      = (Name.capitalize_name(params[:first])       if params[:first])          || ""
+    @middle     = (Name.capitalize_each_name(params[:middle]) if params[:middle])         || ""
+    @initials   = (params[:initials].upcase                   if params[:initials])       || ""
+    @post_title = (params[:post_title].upcase                 if params[:post_title])     || ""
+    @last       = (Name.capitalize_each_name(params[:last])   if params[:last])           || ""
+
     invalid_keys = params.keys - [:title, :first, :middle, :initials, :last, :post_title]
     throw "Invalid keys #{invalid_keys} used" unless invalid_keys.empty?
   end
