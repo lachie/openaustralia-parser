@@ -22,9 +22,16 @@ Scenario: extracting the birthday
 
 Scenario: finding a bio page for a person
 	Given a person "Bob Loblaw"
-	And not found parlinfo pages for "Bob Francis Loblaw, Robert Francis Loblaw, Bob Loblaw"
+	And not-found parlinfo pages for "Bob Francis Loblaw, Robert Francis Loblaw, Bob Loblaw"
 	And a parlinfo person page for "Robert Loblaw" (stubbed)
 	When I search for the bio pages
 	Then the page for "Robert Loblaw" was found
 	And "1" page(s) were found
+
+Scenario: downloading a list of people
+	Given a list of people "Bob Loblaw"
+	And not-found parlinfo pages for "Bob Francis Loblaw, Robert Francis Loblaw"
+	And a parlinfo person page "Bob Loblaw"
+	And an image of "Bob Loblaw"
+	When I download the list of people
 

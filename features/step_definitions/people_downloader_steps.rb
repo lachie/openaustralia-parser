@@ -6,6 +6,10 @@ When /^I search for the bio pages$/ do
 	@app.people_downloader.iterate_bio_pages_of!([@app.person.person])
 end
 
+When /^I download the list of people$/ do
+	@app.people_downloader.download_people!(@app.people.people)
+end
+
 Then /^the page for "([^\"]*)" was found$/ do |name_list|
 	names = name_list.split(/\s*,\s*/)
 	@app.people_downloader.iterated_pages?(names)

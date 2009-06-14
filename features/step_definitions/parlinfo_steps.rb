@@ -2,7 +2,7 @@ Given /^a parlinfo person page "([^\"]*)"$/ do |name|
 	@app.people_downloader.person_bio!(name)
 end
 
-Given /^not found parlinfo pages for "([^\"]*)"$/ do |name_list|
+Given /^not-found parlinfo pages for "([^\"]*)"$/ do |name_list|
 	name_list.split(/\s*,\s*/).each do |name|
 		@app.parlinfo.prepare_not_found_page_for!(name)
 	end

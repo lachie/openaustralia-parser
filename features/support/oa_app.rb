@@ -41,9 +41,12 @@ module OA
 
 
 
+	require 'fileutils'
 	class Fixtures < Namespace
+		include FileUtils
+
 		def path(name)
-			File.join(File.dirname(__FILE__),'..','fixtures',name)
+			File.expand_path(File.join(File.dirname(__FILE__),'..','fixtures',name))
 		end
 
 		def open(name)
@@ -52,6 +55,22 @@ module OA
 
 		def hpricot_doc(name)
 			Hpricot(open(name))
+		end
+
+		def before!
+			rm_rf tmp_path('*')
+		end
+
+		def tmp_path(name=nil)
+			path = [File.dirname(__FILE__),'..','tmp']
+			path << name if name
+			File.expand_path(File.join(*path))
+		end
+
+		def tmp_dir(name)
+			path = tmp_path(name)
+			mkdir_p(path)
+			path
 		end
 	end
 
@@ -125,6 +144,7 @@ Content-Length: #{text.size}
 
 	require 'person'
 	class Person < Namespace
+		# NOTE basically fixtures... move them outta here!
 		def make!(name)
 			person_params = case name
 											when "Bob Loblaw"
@@ -139,7 +159,26 @@ Content-Length: #{text.size}
 		end
 
 		def person
-			@person || raise( "Please populate the person first with #make(name)")
+			@person || raise( "Please populate the person first with #make!(name)")
+		end
+	end
+
+	require 'people'
+	class People < Namespace
+		# build a people out of person fixtures
+		def make!(*names)
+			names = names.flatten
+			@people = ::People.new
+
+			names.each do |name|
+				@people << person.make!(name).person
+			end
+
+			self
+		end
+
+		def people
+			@people || raise("Please populate people first with #make!(name_list)")
 		end
 	end
 
@@ -147,6 +186,12 @@ Content-Length: #{text.size}
 	class PeopleDownloader < Namespace
 		def downloader
 			@people_downloader ||= ::PeopleImageDownloader.new
+		end
+
+		def download_people!(people)
+			downloader.download(people, fixture.tmp_dir("small"), fixture.tmp_dir("big"))
+
+			self
 		end
 
 		def iterate_bio_pages_of!(people)
@@ -224,5 +269,6 @@ Content-Length: #{text.size}
 		namespace(:parlinfo,:Parlinfo)
 		namespace(:people_downloader,:PeopleDownloader)
 		namespace(:person,:Person)
+		namespace(:people,:People)
 	end
 end
