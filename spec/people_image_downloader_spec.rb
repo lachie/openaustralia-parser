@@ -9,7 +9,6 @@ describe PeopleImageDownloader do
     EOF
 
     stub(Configuration).new.stub!
-
   end
 
   # NOTE excessive stubbing/mocking is a bit of a smell... counteract with integration
@@ -21,7 +20,7 @@ describe PeopleImageDownloader do
       proxy.cache_subdirectory = is_a(String)
       proxy.get('/parlInfo/download/handbook/allmps/0J4/upload_ref_binary/0j4.jpg').mock!.body {blob}
     end
-    mock(Magick::Image).from_blob( blob ).mock![0].returns(image)
+    mock(MiniMagick::Image).from_blob( blob ).mock! {image}
 
     @downloader = PeopleImageDownloader.new
 
