@@ -72,6 +72,12 @@ module OA
 			mkdir_p(path)
 			path
 		end
+
+		def tmp_file(name)
+			path = tmp_path(name)
+			mkdir_p(File.dirname(path))
+			path
+		end
 	end
 
 
@@ -256,6 +262,15 @@ Content-Length: #{text.size}
 			@person_birthday.to_s(:db).should == birthday
 		end
 
+		def images_for_people?(size,people)
+			people.each do |person|
+				image_for_person?(size,person)
+			end
+		end
+
+		def image_for_person?(size,person)
+			file = fixture.tmp_file("#{size}/#{person.id_count}.jpg")
+		end
 		
 	end
 

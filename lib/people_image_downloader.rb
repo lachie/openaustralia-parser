@@ -5,6 +5,8 @@ require 'configuration'
 require 'name'
 require 'hpricot'
 
+require 'uri'
+
 # TODO: Rename class
 class PeopleImageDownloader
   @@SMALL_THUMBNAIL_WIDTH = 44
@@ -15,41 +17,49 @@ class PeopleImageDownloader
     # See http://code.whytheluckystiff.net/hpricot/ticket/13
     Hpricot.buffer_size = 262144
 
-    @conf = Configuration.new
+    @conf  = Configuration.new
     @agent = MechanizeProxy.new
     @agent.cache_subdirectory = "member_images"
   end
 
   def download(people, small_image_dir, large_image_dir)
     each_person_bio_page(people) do |page|
-      name, birthday, image = extract_name(page), extract_birthday(page), extract_image(page)
+      download_page(page, people, small_image_dir, large_image_dir)
+    end
+  end
+
+  def download_page(page, people, small_image_dir, large_image_dir)
+    name, birthday, image = extract_name(page), extract_birthday(page), extract_image(page)
+
+    if !name && !image
+      puts "WARNING: Couldn't find name or photo on page"
+
+    elsif ! name
+      puts "WARNING: Couldn't find name on page"
+
+    elsif ! image
+      puts "WARNING: Can't find photo on page for #{name.full_name}"
+
+    else
       
-      if image.nil?
-        puts "WARNING: Can't find photo for #{name.full_name}"
-      end
-      
-      if name
-        # Small HACK - removing title of name
-        name = Name.new(:first => name.first, :middle => name.middle, :last => name.last, :post_title => name.post_title)
-        person = people.find_person_by_name_and_birthday(name, birthday)
-        if person
-          # If no image was found then silently skip over saving the image
-          if image
-            image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH, @@SMALL_THUMBNAIL_HEIGHT).write(small_image_dir + "/#{person.id_count}.jpg")
-            image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2).write(large_image_dir + "/#{person.id_count}.jpg")
-          end
-        else
-          puts "WARNING: Skipping photo for #{name.full_name} because they don't exist in the list of people"
-        end
+      # Small HACK - removing title of name
+      name = Name.new(:first => name.first, :middle => name.middle, :last => name.last, :post_title => name.post_title)
+
+      if person = people.find_person_by_name_and_birthday(name, birthday)
+        small_img = File.join( small_image_dir, "#{person.id_count}.jpg")
+        large_img = File.join(large_image_dir, "#{person.id_count}.jpg")
+
+        image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT    ).write(small_img)
+        image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2).write(large_img)
       else
-        puts "WARNING: Couldn't find name on page"
+        puts "WARNING: Skipping photo for #{name.full_name} because they don't exist in the list of people"
       end
     end
   end
 
   # Returns nil if page can't be found
   def biography_page_for_person_with_name(text)
-    url = "http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20" + text.gsub(' ', '%20')
+    url = "http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20#{URI.escape(text)}"
     page = @agent.get(url)
 
     # Check if the returned page is a valid one. If not just ignore it
@@ -87,6 +97,7 @@ class PeopleImageDownloader
 
   def extract_name(page)
     title = strip_tags(extract_metadata_tags(page)["Title"])
+
     if title =~ /^Biography for (.*)$/
       Name.last_title_first($~[1])
     else
@@ -98,13 +109,17 @@ class PeopleImageDownloader
   def raw_metadata(page)
     labels = page.search('label.mdLabel')
     values = page.search('div.mdValue')
+
     throw "Number of values do not match number of labels" if labels.size != values.size
+
     metadata = {}
-    (0..labels.size-1).each do |index|
-      label = labels[index].inner_html
-      value = values[index].search('p.mdItem').map{|e| e.inner_html.gsub(/&nbsp;/, '')}
+
+    labels.each_with_index do |label,index|
+      label = label.inner_text
+      value = values[index].search('p.mdItem').map {|e| e.inner_html.gsub(/&nbsp;/, '')}
       metadata[label] = value unless value.empty?
     end
+
     metadata
   end
   
@@ -116,7 +131,7 @@ class PeopleImageDownloader
   end
 
   def strip_tags(doc)
-    str=doc.to_s
+    str = doc.to_s
     str.gsub(/<\/?[^>]*>/, "")
   end
   

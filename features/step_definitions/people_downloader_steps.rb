@@ -18,3 +18,8 @@ end
 Then /^"([^\"]*)" page\(s\) were found$/ do |count|
 	@app.people_downloader.page_count?(count.to_i)
 end
+
+Then /^I should see the "([^\"]*)" images for the list of people$/ do |size|
+	@app.people_downloader.images_for_people?(size,@app.people.people)
+end
+

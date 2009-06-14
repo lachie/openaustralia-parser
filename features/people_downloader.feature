@@ -35,3 +35,6 @@ Scenario: downloading a list of people
 	And an image of "Bob Loblaw"
 	When I download the list of people
 
+	Then I should see the "small" images for the list of people
+	And I should see the "big" images for the list of people
+
