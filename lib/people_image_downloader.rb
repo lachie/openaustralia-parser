@@ -1,4 +1,4 @@
-require 'RMagick'
+require 'mini_magick'
 require 'mechanize_proxy'
 
 require 'configuration'
@@ -46,11 +46,14 @@ class PeopleImageDownloader
       name = Name.new(:first => name.first, :middle => name.middle, :last => name.last, :post_title => name.post_title)
 
       if person = people.find_person_by_name_and_birthday(name, birthday)
-        small_img = File.join( small_image_dir, "#{person.id_count}.jpg")
+        # NOTE minimagick is resizing the same image in place, based on the blob... 
+        # this works ok if we do large then small, but its a big caveat!
+        #
         large_img = File.join(large_image_dir, "#{person.id_count}.jpg")
+        image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2]).write(large_img)
 
-        image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT    ).write(small_img)
-        image.resize_to_fit(@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2).write(large_img)
+        small_img = File.join( small_image_dir, "#{person.id_count}.jpg")
+        image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH, @@SMALL_THUMBNAIL_HEIGHT]    ).write(small_img)
       else
         puts "WARNING: Skipping photo for #{name.full_name} because they don't exist in the list of people"
       end
@@ -162,7 +165,7 @@ class PeopleImageDownloader
       #begin
         #puts "About to lookup image #{relative_image_url}..."
         res = @agent.get(relative_image_url)
-        Magick::Image.from_blob(res.body)[0]
+        MiniMagick::Image.from_blob(res.body)
       #rescue RuntimeError, Magick::ImageMagickError, WWW::Mechanize::ResponseCodeError
       #  return nil
       #end
