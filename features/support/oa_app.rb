@@ -134,14 +134,34 @@ Content-Length: #{text.size}
 			self
 		end
 
-		def extract!
+		def extract_image!
 			@person_image = downloader.extract_image(person_bio)
 			self
 		end
 
-		def extracted?
+		def extract_name!
+			@person_name = downloader.extract_name(person_bio)
+			self
+		end
+
+		def extract_birthday!
+			@person_birthday = downloader.extract_birthday(person_bio)
+			self
+		end
+
+		def extracted_image?
 			@person_image.should_not be_nil
 		end
+
+		def extracted_name?(name)
+			@person_name.full_name.should == name
+		end
+
+		def extracted_birthday?(birthday)
+			@person_birthday.to_s(:db).should == birthday
+		end
+
+		
 	end
 
 	class App < AppBase
