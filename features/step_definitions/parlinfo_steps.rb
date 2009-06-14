@@ -2,6 +2,18 @@ Given /^a parlinfo person page "([^\"]*)"$/ do |name|
 	@app.people_downloader.person_bio!(name)
 end
 
+Given /^not found parlinfo pages for "([^\"]*)"$/ do |name_list|
+	name_list.split(/\s*,\s*/).each do |name|
+		@app.parlinfo.prepare_not_found_page_for!(name)
+	end
+end
+
+Given /^a parlinfo person page for "([^\"]*)" \(stubbed\)$/ do |name|
+	@app.parlinfo.prepare_stub_page_for!(name)
+end
+
+
+
 Given /^an image of "([^\"]*)"$/ do |name|
 	@app.people_downloader.person_image!(name)
 end

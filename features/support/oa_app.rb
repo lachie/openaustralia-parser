@@ -65,7 +65,14 @@ module OA
 
 		def prepare_for_html_get!(url,fixture_name)
 			text = fixture.open(fixture_name).read
+			prepare_for_string_get!(url,text)
+		end
 
+		def prepare_for_file_get!(url,fixture_name)
+			::FakeWeb.register_uri(:get, url, :file => fixture.path(fixture_name))
+		end
+
+		def prepare_for_string_get!(url,text)
 			response = <<-EOR
 HTTP/1.1 200 OK
 Content-Type: text/html
@@ -73,12 +80,7 @@ Content-Length: #{text.size}
 
 #{text}
 			EOR
-
 			::FakeWeb.register_uri(:get, url, :response => response)
-		end
-
-		def prepare_for_file_get!(url,fixture_name)
-			::FakeWeb.register_uri(:get, url, :file => fixture.path(fixture_name))
 		end
 	end
 
@@ -88,6 +90,18 @@ Content-Length: #{text.size}
 		def person_doc!(name)
 			@person_doc = fixture.hpricot_doc("parlinfo_#{name.underscore.gsub(/\s+/,'_')}.html")
 			self
+		end
+
+		def page_content(body)
+			%{<div id="content">\n#{body}\n</div>}
+		end
+
+		def prepare_not_found_page_for!(name)
+			web.prepare_for_string_get!(person_url(name), page_content("No results found"))
+		end
+
+		def prepare_stub_page_for!(name)
+			web.prepare_for_string_get!(person_url(name), page_content("Hooray #{name}"))
 		end
 
 		def person_url(name)
@@ -109,10 +123,46 @@ Content-Length: #{text.size}
 		end
 	end
 
+	require 'person'
+	class Person < Namespace
+		def make!(name)
+			person_params = case name
+											when "Bob Loblaw"
+												{
+													:count => 1,
+													:name => Name.new(:first => 'Bob', :middle => 'Francis', :last => 'Loblaw'),
+													:alternate_names => [Name.new(:first => 'Robert', :middle => 'Francis', :last => 'Loblaw')]
+												}
+											end
+			@person = ::Person.new(person_params)
+			self
+		end
+
+		def person
+			@person || raise( "Please populate the person first with #make(name)")
+		end
+	end
+
 	require 'people_image_downloader'
 	class PeopleDownloader < Namespace
 		def downloader
 			@people_downloader ||= ::PeopleImageDownloader.new
+		end
+
+		def iterate_bio_pages_of!(people)
+			@pages = []
+			downloader.each_person_bio_page(people) {|page| @pages << page}
+			self
+		end
+
+		def iterated_pages?(names)
+			names.each_with_index do |name,index|
+				@pages[index].parser.to_s.should include(name)
+			end
+		end
+
+		def page_count?(count)
+			@pages.should have(count).items
 		end
 
 
@@ -173,5 +223,6 @@ Content-Length: #{text.size}
 		namespace(:web,:FakeWeb)
 		namespace(:parlinfo,:Parlinfo)
 		namespace(:people_downloader,:PeopleDownloader)
+		namespace(:person,:Person)
 	end
 end
