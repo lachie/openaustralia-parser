@@ -1,14 +1,10 @@
-$:.unshift "#{File.dirname(__FILE__)}/../lib"
-
-require "test/unit"
-require 'spec'
+require File.dirname(__FILE__)+'/spec_helper'
 
 require "people_xml_writer"
 
 describe PeopleXMLWriter do
   it "writes out xml file of electoral divisions" do
-    people = mock("People")
-    people.stub!(:divisions).and_return(["Blah", "Foo"])
+		people = stub!.divisions {["Blah", "Foo"]}.subject
         
     result = ""
     # So confusing: This is divisions as in electoral divisions rather than voting divisions

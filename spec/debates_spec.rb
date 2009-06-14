@@ -1,7 +1,4 @@
-$:.unshift "#{File.dirname(__FILE__)}/../lib"
-
-require "test/unit"
-require 'spec'
+require File.dirname(__FILE__)+'/spec_helper'
 
 require "debates"
 require 'house'
@@ -9,11 +6,12 @@ require 'builder_alpha_attributes'
 
 describe Debates do
   before :each do
-		stub(@james = {}) {
+		stub(@james = Object.new) {
 			name.stub!.full_name {'james'}
 			id { 101 }
 		}
-		stub(@henry = {}) {
+
+		stub(@henry = Object.new) {
 			name.stub!.full_name {'henry'}
 			id { 102 }
 		}
