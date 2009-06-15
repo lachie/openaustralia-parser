@@ -43,20 +43,34 @@ class Configuration
   end
   
   def initialize
-    # Load the information from the mysociety configuration
-    require "#{web_root}/rblib/config"
+    begin
+      # Load the information from the mysociety configuration
+      require "#{web_root}/rblib/config"
 
-    MySociety::Config.set_file("#{web_root}/twfy/conf/general")
+      MySociety::Config.set_file("#{web_root}/twfy/conf/general")
 
-    @database_host     = MySociety::Config.get('DB_HOST')
-    @database_user     = MySociety::Config.get('DB_USER')
-    @database_password = MySociety::Config.get('DB_PASSWORD')
-    @database_name     = MySociety::Config.get('DB_NAME')
-    @file_image_path   = MySociety::Config.get('FILEIMAGEPATH')
-    @members_xml_path  = MySociety::Config.get('PWMEMBERS')
-    @xml_path          = MySociety::Config.get('RAWDATA')
-    @regmem_pdf_path   = MySociety::Config.get('REGMEMPDFPATH')
-    @base_dir          = MySociety::Config.get('BASEDIR')
+      {
+        'database_host'     => 'DB_HOST',
+        'database_password' => 'DB_PASSWORD',
+        'database_name'     => 'DB_NAME',
+        'file_image_path'   => 'FILEIMAGEPATH',
+        'members_xml_path'  => 'PWMEMBERS',
+        'xml_path'          => 'RAWDATA',
+        'regmem_pdf_path'   => 'REGMEMPDFPATH',
+        'base_dir'          => 'BASEDIR',
+      }.each do |(ivar,key)|
+        value = if global_conf.key?(ivar)
+                  global_conf[ivar]
+                else
+                  MySociety::Config.get(key)
+                end
+
+        instance_variable_set("@#{ivar}", value)
+      end
+
+    rescue LoadError
+      puts "WARNING: twfy/my society config not loaded (#{$!})"
+    end
   end
   
   # Ruby magic
