@@ -1,32 +1,46 @@
 require 'yaml'
+require 'activesupport'
+require 'pp'
 
 class Configuration
   # TODO: Could have conflicts between these and names in the configuration file
   attr_reader :database_host, :database_user, :database_password, :database_name, :file_image_path, :members_xml_path, :xml_path,
     :regmem_pdf_path, :base_dir
   
-  @@conf = nil
-
+  cattr_accessor :local_config_path
+  cattr_accessor :root
 
   # Load the configuration
   def self.global_conf
-    unless @@conf
-      here = File.dirname(__FILE__)
-      @@conf = YAML.load_file( "#{here}/../configuration.yml" ) || {}
+    unless @conf
+      root = self.root = File.expand_path(File.dirname(__FILE__)+'/..')
 
-      local_config = "#{here}/../configuration-local.yml"
+      @conf = YAML.load_file( "#{root}/configuration.yml" ) || {}
+
+      local_config = self.local_config_path ||= "#{root}/configuration-local.yml"
       if File.exist?(local_config)
-        @@conf.merge!( YAML.load_file( local_config ) )
+        @conf.merge!( YAML.load_file( local_config ) )
       end
 
-      @@conf.keys.each do |key|
-        #@@conf
+      subs = {
+        ':root' => root,
+        ':home' => ENV['HOME']
+      }
+
+      @conf.each do |(key,value)|
+        if String === value
+          @conf[key] = value.gsub(/:[a-z]+/) {|key| subs[key] }
+        end
       end
     end
 
-    @@conf
+    @conf
   end
   def global_conf; self.class.global_conf end
+
+  def self.clear_global_conf!
+    @conf = nil
+  end
   
   def initialize
     # Load the information from the mysociety configuration
