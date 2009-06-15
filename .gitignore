@@ -14,3 +14,4 @@ data/register_of_interests/representatives/*.pdf
 .*.sw?
 .DS_Store
 features/tmp
+configuration-local.yml

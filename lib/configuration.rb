@@ -7,9 +7,24 @@ class Configuration
   
   @@conf = nil
 
+
   # Load the configuration
   def self.global_conf
-    @@conf ||= YAML.load_file( "#{File.dirname(__FILE__)}/../configuration.yml" ) || {}
+    unless @@conf
+      here = File.dirname(__FILE__)
+      @@conf = YAML.load_file( "#{here}/../configuration.yml" ) || {}
+
+      local_config = "#{here}/../configuration-local.yml"
+      if File.exist?(local_config)
+        @@conf.merge!( YAML.load_file( local_config ) )
+      end
+
+      @@conf.keys.each do |key|
+        #@@conf
+      end
+    end
+
+    @@conf
   end
   def global_conf; self.class.global_conf end
   

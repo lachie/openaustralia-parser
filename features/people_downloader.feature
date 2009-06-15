@@ -38,3 +38,8 @@ Scenario: downloading a list of people
 	Then I should see the "small" images for the list of people
 	And I should see the "big" images for the list of people
 
+@focus
+Scenario: attempting to download a person not found in parlinfo
+	Given a list of people "John Armitage"
+	And not-found parlinfo pages for "John Lindsay Armitage, John Armitage"
+	When I download the list of people

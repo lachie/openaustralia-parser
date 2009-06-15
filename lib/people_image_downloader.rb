@@ -53,7 +53,7 @@ class PeopleImageDownloader
         image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2]).write(large_img)
 
         small_img = File.join( small_image_dir, "#{person.id_count}.jpg")
-        image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH, @@SMALL_THUMBNAIL_HEIGHT]    ).write(small_img)
+        image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT]    ).write(small_img)
       else
         puts "WARNING: Skipping photo for #{name.full_name} because they don't exist in the list of people"
       end
@@ -85,6 +85,8 @@ class PeopleImageDownloader
         return page
       end
     end
+
+    nil
   end
   
   def each_person_bio_page(people)

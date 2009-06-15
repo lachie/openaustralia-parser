@@ -150,8 +150,7 @@ Content-Length: #{text.size}
 
 	require 'person'
 	class Person < Namespace
-		# NOTE basically fixtures... move them outta here!
-		def make!(name)
+		def make(name)
 			person_params = case name
 											when "Bob Loblaw"
 												{
@@ -159,8 +158,19 @@ Content-Length: #{text.size}
 													:name => Name.new(:first => 'Bob', :middle => 'Francis', :last => 'Loblaw'),
 													:alternate_names => [Name.new(:first => 'Robert', :middle => 'Francis', :last => 'Loblaw')]
 												}
+											when "John Armitage"
+												{
+													:count => 2,
+													:name => Name.new(:first => 'John', :middle => 'Lindsay', :last => 'Armitage')
+												}
+											else
+												raise "Person fixture not found for #{name}"
 											end
-			@person = ::Person.new(person_params)
+			::Person.new(person_params)
+		end
+
+		def make!(name)
+			@person = make(name)
 			self
 		end
 
@@ -198,6 +208,10 @@ Content-Length: #{text.size}
 			downloader.download(people, fixture.tmp_dir("small"), fixture.tmp_dir("big"))
 
 			self
+		end
+
+		def download!
+			download.download_page(page, person, fixture.tmp_dir("small"), fixture.tmp_dir("big"))
 		end
 
 		def iterate_bio_pages_of!(people)
