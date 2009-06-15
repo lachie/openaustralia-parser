@@ -1,6 +1,7 @@
 require 'activesupport'
 require 'hpricot'
 require 'fake_web'
+require 'ostruct'
 
 module OA
 	class Namespace
@@ -10,6 +11,30 @@ module OA
     end
 
 		def before!; end
+
+
+		def self.build(ivar,&block)
+			define_method("make",&block)
+
+			define_method("make!") do |*args|
+				instance_variable_set("@#{ivar}", make(*args))
+				self
+			end
+
+			define_method('made') do
+				instance_variable_get("@#{ivar}") || raise("Please create the #{ivar} with #make!(...) first")
+			end
+		end
+
+		def make!(*args)
+			@made = make(*args)
+			self
+		end
+
+		def made
+			@made || raise("Please create the #{self.class.to_s.underscore} with #make!(...) first")
+		end
+		alias :o :made
 
     def method_missing(method_id,*args,&block)
       @app.send(method_id,*args,&block)
@@ -93,14 +118,19 @@ module OA
 			prepare_for_string_get!(url,text)
 		end
 
+		def prepare_for_type_get!(url,fixture_name,content_type)
+			text = fixture.open(fixture_name).read
+			prepare_for_string_get!(url,text,content_type)
+		end
+
 		def prepare_for_file_get!(url,fixture_name)
 			::FakeWeb.register_uri(:get, url, :file => fixture.path(fixture_name))
 		end
 
-		def prepare_for_string_get!(url,text)
+		def prepare_for_string_get!(url,text,content_type='text/html')
 			response = <<-EOR
 HTTP/1.1 200 OK
-Content-Type: text/html
+Content-Type: #{content_type}
 Content-Length: #{text.size}
 
 #{text}
@@ -129,13 +159,43 @@ Content-Length: #{text.size}
 			web.prepare_for_string_get!(person_url(name), page_content("Hooray #{name}"))
 		end
 
+
+		# hansard
+		def prepare_hansard_page!
+			web.prepare_for_html_get!(hansard_search_url, hansard_fixture('html'))
+		end
+
+		def prepare_hansard_xml!(id)
+			web.prepare_for_type_get!(hansard_xml_url(id), hansard_fixture('xml'), 'text/xml')
+		end
+
+		def parlinfo_url
+			"http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p"
+		end
 		def person_url(name)
-			"http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20" + name.gsub(' ', '%20')
+			"#{parlinfo_url};query=Dataset:allmps%20" + name.gsub(' ', '%20')
 		end
 
 		def person_image_url(name)
 			name = name.underscore.gsub(/\s+/,'_')
 			"http://parlinfo.aph.gov.au/parlInfo/download/handbook/allmps/0J4/upload_ref_binary/#{name}.jpg"
+		end
+
+		def hansard_letter
+			house.is_reps?(hansard.o.house) ? "r" : "s"
+		end
+
+		def hansard_search_url
+			"#{parlinfo_url};query=Id:chamber/hansard#{hansard_letter}/#{hansard.o.date}/0000"
+		end
+
+		def hansard_xml_url(id)
+			"http://parlinfo.aph.gov.au:80/parlInfo/download/chamber/hansard#{hansard_letter}/#{hansard.o.date}/toc_unixml/#{id}.xml"
+		end
+
+		def hansard_fixture(ext)
+			base_name = "hansard_#{hansard.o.house}_#{hansard.o.date.underscore}"
+			"#{base_name}.#{ext}"
 		end
 		
 
@@ -145,6 +205,54 @@ Content-Length: #{text.size}
 
 		def person_image_file(name)
 			"parlinfo_#{name.underscore.gsub(/\s+/,'_')}.jpg"
+		end
+	end
+
+	require 'house'
+	class House < Namespace
+		def interpret(house)
+			if is_reps?(house)
+				'reps'
+			elsif house[/senate/i]
+				'senate'
+			else
+				raise "can't interpret house '#{house}'"
+			end
+		end
+
+		def make(named)
+			case interpret(named)
+			when 'reps'
+				::House.representatives
+			when 'senate'
+				::House.senate
+			end
+		end
+
+		def is_reps?(house)
+		 !!house[/rep/i]
+		end
+	end
+
+	class Hansard < Namespace
+		def make(house_str,date)
+			OpenStruct.new(:house => house.interpret(house_str), :date => date)
+		end
+	end
+
+	require 'hansard_parser'
+	class HansardParser < Namespace
+		def make(people)
+			::HansardParser.new(people)
+		end
+
+		def download!
+			@body = o.unpatched_hansard_xml_source_data_on_date(hansard.o.date, house.make(hansard.o.house))
+			self
+		end
+
+		def body?
+			@body.should_not be_blank
 		end
 	end
 
@@ -299,5 +407,8 @@ Content-Length: #{text.size}
 		namespace(:people_downloader,:PeopleDownloader)
 		namespace(:person,:Person)
 		namespace(:people,:People)
+		namespace(:house,:House)
+		namespace(:hansard,:Hansard)
+		namespace(:hansard_parser,:HansardParser)
 	end
 end

@@ -65,6 +65,7 @@ end
 
 conf = Configuration.new
 
+puts conf.xml_path
 FileUtils.mkdir_p "#{conf.xml_path}/scrapedxml/representatives_debates"
 FileUtils.mkdir_p "#{conf.xml_path}/scrapedxml/senate_debates"
 
@@ -85,6 +86,7 @@ while date >= from_date
       parser.parse_date_house(date, "#{conf.xml_path}/scrapedxml/representatives_debates/#{date}.xml", House.representatives)
     end
   end
+
   progress.inc
   if conf.write_xml_senators
     if options[:proof]
