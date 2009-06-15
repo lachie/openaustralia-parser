@@ -11,6 +11,7 @@ gem 'log4r'
 
 gem 'rspec'
 gem 'rcov'
+gem 'rr'
 
 gem 'mini_magick'
 
