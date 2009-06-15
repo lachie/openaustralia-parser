@@ -1,0 +1,11 @@
+--- original.xml	2009-06-15 17:25:51.000000000 +1000
++++ patched.xml	2009-06-15 17:25:44.000000000 +1000
+@@ -73,7 +73,7 @@
+ <talker>
+ <page.no>1</page.no>
+ <time.stamp>09:03:00</time.stamp>
+-<name role="metadata">Hayes, Chris, MP</name>
++<name role="metadata">Hayes, Christopher, MP</name>
+ <name.id>ECV</name.id>
+ <electorate>Werriwa</electorate>
+ <party>ALP</party>

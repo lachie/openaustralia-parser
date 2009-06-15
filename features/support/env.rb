@@ -16,3 +16,7 @@ end
 World do
 	OurWorld.new
 end
+
+After do
+	@app.after!
+end

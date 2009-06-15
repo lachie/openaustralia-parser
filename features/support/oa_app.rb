@@ -238,6 +238,20 @@ Content-Length: #{text.size}
 		def make(house_str,date)
 			OpenStruct.new(:house => house.interpret(house_str), :date => date)
 		end
+
+		def xml_patch_name
+			"#{o.house == 'reps' ? 'representatives' : 'senate'}.#{o.date}.xml.patch" 
+		end
+
+		def xml_patch
+			fixture.path(xml_patch_name)
+		end
+
+		def xml_patch!
+			patch = File.join(root,'data','patches',xml_patch_name)
+			FileUtils::cp(xml_patch, patch)
+			do_after { FileUtils::rm(patch) }
+		end
 	end
 
 	require 'hansard_parser'
@@ -247,12 +261,20 @@ Content-Length: #{text.size}
 		end
 
 		def download!
-			@body = o.unpatched_hansard_xml_source_data_on_date(hansard.o.date, house.make(hansard.o.house))
+			@body = o.hansard_xml_source_data_on_date(hansard.o.date, house.make(hansard.o.house))
 			self
+		end
+
+		def download_and_patch!
+			@body = o.hansard_xml_source_data_on_date(hansard.o.date, house.make(hansard.o.house))
 		end
 
 		def body?
 			@body.should_not be_blank
+		end
+
+		def patched?(text,line)
+			@body.split("\n")[line].should include(text)
 		end
 	end
 
@@ -399,6 +421,21 @@ Content-Length: #{text.size}
 	class App < AppBase
 		def before!
 			MechanizeProxyCache.perform_caching = false
+		end
+
+		def after!
+			if !@after_list.blank?
+				@after_list.each {|block| block[]}
+			end
+		end
+
+		def root
+			@root ||= File.expand_path(File.dirname(__FILE__)+'/../..')
+		end
+
+		def do_after(&block)
+			@after_list ||= []
+			@after_list << block
 		end
 
 		namespace(:fixture,:Fixtures)
