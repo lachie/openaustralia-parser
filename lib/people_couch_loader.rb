@@ -50,6 +50,7 @@ class PeopleCouchLoader
     @people.each do |person|
       slug = to_key(person.name.full_name)
       key = ['people',slug] * '/'
+
       @db.save_doc(compact_hash('_id' => key,
         :aph_id => person.aph_id,
         :birthday => person.birthday,
@@ -67,15 +68,13 @@ class PeopleCouchLoader
     @slugs ||= Hash.new {|h,k| h[k] = -1}
 
     person.minister_positions.each do |pos|
-      pos_doc = load_position(pos)
-
       key = ['people-positions','federal',pos.minister_count] * '/'
 
       pp = compact_hash(
         '_id'     => key,
         :type     => 'person-position',
         :name     => pos.position,
-        :position => pos_doc['id'],
+        :position => position_key(pos),
         :person   => person_key,
         :from     => pos.from_date,
         :to       => pos.to_date
@@ -89,23 +88,10 @@ class PeopleCouchLoader
     end
   end
 
-  def load_position(pos)
-    slug = to_key(pos.position)
-    key  = ['positions','federal',slug] * '/'
-    @positions ||= {}
-
-    if doc = @positions[key]
-      return doc
-    end
-
-    doc = CouchRest::Document.new('_id' => key,
-                                  :name => pos.position,
-                                  :slug => slug,
-                                 :type => 'position')
-    @db.save_doc(doc)
-    @positions[key] = doc
+  def position_key(pos)
+    ['positions','federal',to_key(pos.position)] * '/'
   end
-  
+
   def load_people_periods(person,person_key,person_slug)
     person.periods.each do |period|
       key = ['people-period','federal',period.id_for_house] * '/'
@@ -120,11 +106,11 @@ class PeopleCouchLoader
 
         :type         => 'person-period',
 
-        :division     => div['id'],
+        :division     => div,
 
         :state        => period.state,
-        :party        => party['id'],
-        :house        => house['id'],
+        :party        => party,
+        :house        => house,
 
         :entry_date   => period.from_date,
         :entry_reason => period.from_why,
@@ -137,77 +123,41 @@ class PeopleCouchLoader
     end
   end
 
-  def load_division(name,state)
-    @divisions ||= {}
-
+  def division_key(name,state)
     key = ['divisions','federal',to_key(state)]
+
     if !name.blank?
       key << to_key(name)
     end
-    key = key * '/'
 
-    if div = @divisions[key]
-      return div
-    end
+    key * '/'
+  end
 
-    div = compact_hash('_id' => key,
-                       :type => 'division',
-                       :name => name,
-                       :state => state
-                      )
+  def load_division(name,state)
+    compact_hash(:key => division_key(name,state),
+                 :name => name,
+                 :state => state
+                )
+  end
 
-    @divisions[key] = @db.save_doc(div)
+  def party_key(party)
+    ['parties','federal',to_key(party)] * '/'
   end
 
   def load_party(party)
-    @parties ||= {}
-    key = ['parties','federal',to_key(party)] * '/'
-
-    if party = @parties[key]
-      return party
-    end
-
-    party = compact_hash('_id' => key,
-                         :name => party,
-                         :type => 'party'
-                        )
-
-    @parties[key] = @db.save_doc(party)
+    {
+      :name => party,
+      :key => party_key(party)
+    }
   end
 
+  def house_key(house)
+    ['houses','federal',to_key(house)] * '/'
+  end
   def load_house(house)
-    @houses ||= {}
-    key = ['houses','federal',to_key(house)] * '/'
-
-    if house = @houses[key]
-      return house
-    end
-
-    house = compact_hash('_id' => key,
-                         :name => house,
-                         :type => 'house')
-    @houses[key] = @db.save_doc(house)
+    {
+      :name => house,
+      :key => house_key(house)
+    }
   end
-
-# people = [people.first]
-
-
-# divs = members.map do |member|
-#   [member.division, member.state]
-# end.uniq.each do |division|
-#   key = ["divisions",'federal','reps',division.last.downcase,division.first.downcase.gsub(/[^a-z]+/,'-')] * '/'
-#   puts key
-# end
-# 
-# 
-# members.each do |member|
-#   # pp member
-# end
-
-#people.each do |person|
-#  key = person.name.full_name.downcase.gsub(/[^a-z]+/,'-')
-#  puts key
-#end
-
-#pp people[0..10]
 end
