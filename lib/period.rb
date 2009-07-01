@@ -58,6 +58,10 @@ class Period < PeriodBase
       "uk.org.publicwhip/member/#{@count}"
     end
   end
+
+  def id_for_house
+    senator? ? 100000 + @count : @count
+  end
   
   def representative?
     @house.representatives?

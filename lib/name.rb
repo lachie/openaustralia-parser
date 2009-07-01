@@ -156,6 +156,19 @@ class Name
     t = t + ", #{post_title}" if has_post_title?
     t
   end
+
+  def to_hash
+    {
+      :title => title,
+      :first => first,
+      :middle => middle,
+      :last => last,
+      :post_title => post_title
+    }.inject({}) {|h,(k,v)|
+      h[k] = v unless v.blank?
+      h
+    }
+  end
   
   def has_title?
     @title != ""

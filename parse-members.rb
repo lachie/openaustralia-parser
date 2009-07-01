@@ -2,9 +2,12 @@
 
 $:.unshift "#{File.dirname(__FILE__)}/lib"
 
+require 'environment'
 require 'configuration'
 require 'people'
 require 'enumerator'
+
+require 'people_couch_loader'
 
 conf = Configuration.new
 
@@ -56,10 +59,14 @@ people.each do |person|
   end  
 end
 
-puts "Writing XML..."
-people.write_xml("#{conf.members_xml_path}/people.xml", "#{conf.members_xml_path}/representatives.xml", "#{conf.members_xml_path}/senators.xml",
-  "#{conf.members_xml_path}/ministers.xml", "#{conf.members_xml_path}/divisions.xml")
+# puts "Writing XML..."
+# people.write_xml("#{conf.members_xml_path}/people.xml", "#{conf.members_xml_path}/representatives.xml", "#{conf.members_xml_path}/senators.xml",
+#   "#{conf.members_xml_path}/ministers.xml", "#{conf.members_xml_path}/divisions.xml")
+# 
+# # And load up the database
+# # Starts with 'perl' to be friendly with Windows
+# system("perl #{conf.web_root}/twfy/scripts/xml2db.pl --members --all --force")
 
-# And load up the database
-# Starts with 'perl' to be friendly with Windows
-system("perl #{conf.web_root}/twfy/scripts/xml2db.pl --members --all --force")
+puts "loading into couch..."
+PeopleCouchLoader.load(people)
+
