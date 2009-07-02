@@ -1,17 +1,8 @@
 #!/usr/bin/env ruby
 
-$:.unshift "#{File.dirname(__FILE__)}/lib"
+require File.dirname(__FILE__)+'/lib/environment'
 
-require 'people'
-require 'hansard_parser'
-
-require 'hansard_couch_loader'
-require 'hansard_xml_writer'
-
-require 'configuration'
 require 'optparse'
-require 'output'
-require 'progressbar'
 
 def parse_date(text)
   today = Date.today

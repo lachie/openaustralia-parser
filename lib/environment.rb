@@ -2,9 +2,6 @@
 # This avoids spreading it out throughout the codebase
 
 
-$:.unshift File.dirname(__FILE__)
-require 'core_ext/string'
-require 'core_ext/array'
 
 require 'rubygems'
 gem 'activesupport', ">= 2.2"
@@ -22,3 +19,10 @@ gem 'rcov'
 gem 'rr'
 
 
+require 'active_support'
+
+$:.unshift File.dirname(__FILE__)
+require 'core_ext/string'
+require 'core_ext/array'
+
+ActiveSupport::Dependencies.load_paths << File.dirname(__FILE__)

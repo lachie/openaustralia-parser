@@ -2,16 +2,7 @@
 
 require File.dirname(__FILE__)+'/lib/environment'
 
-require 'configuration'
-require 'people'
-require 'enumerator'
-
 require 'optparse'
-require 'output'
-
-require 'people_couch_loader'
-require 'people_xml_output'
-
 conf = Configuration.new
 
 output = Output.new(
