@@ -60,7 +60,9 @@ class HansardParser
 
     # This is the page returned by Parlinfo Search for that day
     url = "http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Id:chamber/hansard#{house.representatives? ? "r" : "s"}/#{date}/0000"
+
     page = agent.get(url)
+
     tag = page.at('div#content center')
     if tag && tag.inner_html =~ /^Unable to find document/
       nil
@@ -102,26 +104,26 @@ class HansardParser
   end
   
   # Parse but only if there is a page that is at "proof" stage
-  def parse_date_house_only_in_proof(date, xml_filename, house)
+  def parse_date_house_debates_only_in_proof(date, house)
     day = hansard_day_on_date(date, house)
     if day && day.in_proof?
       logger.info "Deleting all cached html for #{date} because that date is in proof stage."
       FileUtils.rm_rf("#{@conf.html_cache_path}/#{cache_subdirectory(date, house)}")
       logger.info "Redownloading pages on #{date}..."
-      parse_date_house(date, xml_filename, house)
+      parse_date_house_debates(date, house)
+		else
+			Debates.new(date, house, @logger)
     end
   end
   
-  def parse_date_house(date, xml_filename, house)
+	def parse_date_house_debates(date,house)
     debates = Debates.new(date, house, @logger)
     
-    content = false
     day = hansard_day_on_date(date, house)
     if day
       @logger.info "Parsing #{house} speeches for #{date.strftime('%a %d %b %Y')}..."    
       @logger.warn "In proof stage" if day.in_proof?
       day.pages.each do |page|
-        content = true
 
         if page.is_a?(HansardUnsupported)
           # Adding header as soon as possible (even for unsupported sections), so that as new bits of the Han
@@ -178,10 +180,10 @@ class HansardParser
     else
       @logger.info "Skipping #{house} speeches for #{date.strftime('%a %d %b %Y')} (no data available)"
     end
-  
-    # Only output the debate file if there's going to be something in it
-    debates.output(xml_filename) if content
-  end
+
+		debates
+	end
+
   
   def lookup_speaker_by_title(speech, date, house)
     # Some sanity checking.

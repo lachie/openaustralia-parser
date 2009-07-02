@@ -4,8 +4,13 @@ $:.unshift "#{File.dirname(__FILE__)}/lib"
 
 require 'people'
 require 'hansard_parser'
+
+require 'hansard_couch_loader'
+require 'hansard_xml_writer'
+
 require 'configuration'
 require 'optparse'
+require 'output'
 require 'progressbar'
 
 def parse_date(text)
@@ -30,6 +35,12 @@ def parse_date(text)
   end
 end
 
+
+output = Output.new(
+                    :xml   => HansardXmlWriter,
+                    :couch => HansardCouchLoader
+                   )
+
 # Defaults
 options = {:load_database => true, :proof => false, :force => false}
 
@@ -48,11 +59,17 @@ EOF
   opts.on("--force", "On loading data into database delete records that are not in the XML") do |l|
     options[:force] = l
   end
+	opts.on("--xml", "Produce scraped XML") do
+		output.select! :xml
+	end
+	opts.on("--couch", "Load speeches into CouchDB") do
+		output.select! :couch
+	end
 end.parse!
 
 if ARGV.size != 1 && ARGV.size != 2
   puts "Need to supply one or two dates"
-  exit
+  exit!
 end
     
 from_date = parse_date(ARGV[0])
@@ -63,16 +80,20 @@ else
   to_date = parse_date(ARGV[1])
 end
 
-conf = Configuration.new
+unless output.selection_valid?
+	puts "You need to supply at least one output option (--xml or --couch)"
+	exit!
+end
 
-puts conf.xml_path
-FileUtils.mkdir_p "#{conf.xml_path}/scrapedxml/representatives_debates"
-FileUtils.mkdir_p "#{conf.xml_path}/scrapedxml/senate_debates"
+conf = Configuration.new
 
 # First load people back in so that we can look up member id's
 people = PeopleCSVReader.read_members
-
 parser = HansardParser.new(people)
+
+output.create! {|o| o.new(conf)}
+output.setup!
+
 
 progress = ProgressBar.new("parse-speeches", ((to_date - from_date + 1) * 2).to_i)
 
@@ -80,34 +101,35 @@ progress = ProgressBar.new("parse-speeches", ((to_date - from_date + 1) * 2).to_
 date = to_date
 while date >= from_date
   if conf.write_xml_representatives
-    if options[:proof]
-      parser.parse_date_house_only_in_proof(date, "#{conf.xml_path}/scrapedxml/representatives_debates/#{date}.xml", House.representatives)
+    reps_debates = if options[:proof]
+      parser.parse_date_house_debates_only_in_proof(date, House.representatives)
     else
-      parser.parse_date_house(date, "#{conf.xml_path}/scrapedxml/representatives_debates/#{date}.xml", House.representatives)
+      parser.parse_date_house_debates(date, House.representatives)
     end
+
+		output.output(reps_debates,date,House.representatives)
   end
 
   progress.inc
+
   if conf.write_xml_senators
-    if options[:proof]
-      parser.parse_date_house_only_in_proof(date, "#{conf.xml_path}/scrapedxml/senate_debates/#{date}.xml", House.senate)
+    senate_debates = if options[:proof]
+      parser.parse_date_house_debates_only_in_proof(date, House.senate)
     else
-      parser.parse_date_house(date, "#{conf.xml_path}/scrapedxml/senate_debates/#{date}.xml", House.senate)
+      parser.parse_date_house_debates(date, House.senate)
     end
+
+		output.output(senate_debates,date,House.senate)
   end
+
   progress.inc
   date = date - 1
 end
 
 progress.finish
 
+
 # And load up the database
 if options[:load_database]
-  command_options = " --from=#{from_date} --to=#{to_date}"
-  command_options << " --debates" if conf.write_xml_representatives
-  command_options << " --lordsdebates" if conf.write_xml_senators
-  command_options << " --force" if options[:force]
-  
-  # Starts with 'perl' to be friendly with Windows
-  system("perl #{conf.web_root}/twfy/scripts/xml2db.pl #{command_options}")
+	output.finalise!(:force => options[:force], :from_date => from_date, :to_date => to_date)
 end

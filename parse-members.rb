@@ -1,17 +1,45 @@
 #!/usr/bin/env ruby
 
-$:.unshift "#{File.dirname(__FILE__)}/lib"
+require File.dirname(__FILE__)+'/lib/environment'
 
-require 'environment'
 require 'configuration'
 require 'people'
 require 'enumerator'
 
+require 'optparse'
+require 'output'
+
 require 'people_couch_loader'
+require 'people_xml_output'
 
 conf = Configuration.new
 
-FileUtils.mkdir_p conf.members_xml_path
+output = Output.new(
+                    :xml   => PeopleXmlOutput,
+                    :couch => PeopleCouchLoader
+                   )
+
+OptionParser.new do |opts|
+  opts.banner = <<-EOF
+Usage: parse-members.rb [options]
+  EOF
+  opts.on("--xml", "Generate XML") do
+    output.select! :xml
+  end
+
+  opts.on("--couch", "Load into CouchDB") do
+    output.select! :couch
+  end
+end.parse!
+
+unless output.selection_valid?
+	puts "You need to supply at least one output option (--xml or --couch)"
+	exit!
+end
+
+output.create! {|o| o.new(conf)}
+output.setup!
+
 
 puts "Reading members data..."
 people = PeopleCSVReader.read_members
@@ -59,14 +87,5 @@ people.each do |person|
   end  
 end
 
-# puts "Writing XML..."
-# people.write_xml("#{conf.members_xml_path}/people.xml", "#{conf.members_xml_path}/representatives.xml", "#{conf.members_xml_path}/senators.xml",
-#   "#{conf.members_xml_path}/ministers.xml", "#{conf.members_xml_path}/divisions.xml")
-# 
-# # And load up the database
-# # Starts with 'perl' to be friendly with Windows
-# system("perl #{conf.web_root}/twfy/scripts/xml2db.pl --members --all --force")
-
-puts "loading into couch..."
-PeopleCouchLoader.load(people)
-
+output.output(people)
+output.finalise!

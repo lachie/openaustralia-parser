@@ -12,6 +12,11 @@ class Person
   def id_count
     10000 + @person_count
   end
+
+
+  def couch_id
+    ['people',name.full_name].to_key
+  end
   
   def initialize(params)
     @name = params.delete(:name)

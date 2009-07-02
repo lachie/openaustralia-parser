@@ -1,38 +1,22 @@
 require 'couchrest'
 
 class PeopleCouchLoader
-  class << self
-    def load(people)
-      new(people).load
-    end
+  def initialize(conf)
+    @conf = conf
   end
 
-  def initialize(people)
-    @people = people
+  def setup!
     @db = CouchRest.database!("http://127.0.0.1:5984/openaustralia")
     # TODO remove later
     @db.recreate!
   end
 
-  def load
+  def finalise!; end
+
+  def output(people)
+    @people = people
+
     load_people
-  end
-
-  def write_doc(key,doc_hash)
-    doc_hash['_id'] = key
-
-    begin
-      doc = @db.get(key)
-      doc.destroy
-    rescue RestClient::ResourceNotFound
-    end
-
-    begin
-      resp = @db.save_doc(doc_hash)
-    rescue
-      pp $!.response.body
-      raise $!
-    end
   end
 
   def compact_hash(hash)
@@ -48,8 +32,7 @@ class PeopleCouchLoader
 
   def load_people
     @people.each do |person|
-      slug = to_key(person.name.full_name)
-      key = ['people',slug] * '/'
+      key = person.couch_id
 
       @db.save_doc(compact_hash('_id' => key,
         :aph_id => person.aph_id,
@@ -59,12 +42,12 @@ class PeopleCouchLoader
         :alternative_names => person.alternate_names.map {|a| a.to_hash}
      ))
 
-     load_people_positions(person,key,slug)
-     load_people_periods(person,key,slug)
+     load_people_positions(person,key)
+     load_people_periods(person  ,key)
     end
   end
 
-  def load_people_positions(person,person_key,person_slug)
+  def load_people_positions(person,person_key)
     @slugs ||= Hash.new {|h,k| h[k] = -1}
 
     person.minister_positions.each do |pos|
@@ -92,7 +75,7 @@ class PeopleCouchLoader
     ['positions','federal',to_key(pos.position)] * '/'
   end
 
-  def load_people_periods(person,person_key,person_slug)
+  def load_people_periods(person,person_key)
     person.periods.each do |period|
       key = ['people-period','federal',period.id_for_house] * '/'
 

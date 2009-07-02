@@ -2,7 +2,6 @@ require 'builder_alpha_attributes'
 require 'configuration'
 
 class PeopleXMLWriter
-  
   def PeopleXMLWriter.write(people, people_filename, members_filename, senators_filename, ministers_filename, divisions_filename)
     conf = Configuration.new
 

@@ -6,6 +6,8 @@ require 'count'
 # Holds the data for debates on one day
 # Also knows how to output the XML data for that
 class Debates
+	attr_reader :items
+
   def initialize(date, house, logger = nil)
     @date, @house, @logger = date, house, logger
     @title = ""
@@ -16,6 +18,10 @@ class Debates
     @latest_major_heading = nil
     @latest_minor_heading = nil
   end
+
+	def content?
+		!@items.empty?
+	end
   
   def add_heading(newtitle, newsubtitle, url)
     # Only add headings if they have changed
