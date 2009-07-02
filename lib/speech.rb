@@ -5,12 +5,17 @@ require 'section'
 
 class Speech < Section
   attr_accessor :speaker, :content
+	attr_reader :date, :house, :title, :content
   
   def initialize(speaker, time, url, count, date, house, logger = nil)
     @speaker = speaker
     @content = Hpricot::Elements.new
     super(time, url, count, date, house, logger)
   end
+
+	def couch_id
+		['hansard','federal',@house.name,'speeches',@date.to_s(:db)].to_key + '/' + @count.to_s
+	end
   
   def output(x)
     time = @time.nil? ? "unknown" : @time

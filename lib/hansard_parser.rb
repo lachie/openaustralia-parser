@@ -26,6 +26,10 @@ class UnknownSpeaker
   def name
     Name.title_first_last(@name)
   end
+
+	def couch_id
+		['people','unknown']
+	end
 end
 
 class HansardParser
