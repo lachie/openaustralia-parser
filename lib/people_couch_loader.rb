@@ -3,20 +3,61 @@ require 'couchrest'
 class PeopleCouchLoader
   def initialize(conf)
     @conf = conf
+    @author = 'lachie'
+    @count = 0
   end
 
   def setup!
-    @db = CouchRest.database!("http://127.0.0.1:5984/openaustralia")
+    puts @conf.couchdb_url
+    @db = CouchRest.database!(@conf.couchdb_url)
     # TODO remove later
-    @db.recreate!
+    #@db.recreate!
+
+    docs = @db.view('people/all')['rows'].map do |r|
+      {
+        '_id' => r['id'],
+        '_rev' => r['value'],
+        '_deleted' => true
+      }
+    end
+
+    unless docs.empty?
+      puts "deleting existing people"
+      deleted = @db.bulk_save(docs)
+      pp deleted
+    end
   end
 
   def finalise!; end
 
+  def add_doc(doc)
+    @docs ||= []
+    @docs << doc
+
+    #@db.save_doc(doc)
+    #puts "  #{@count}" if @count % 10 == 0
+    #@count += 1
+  end
+
   def output(people)
     @people = people
 
+    puts "creating people docs..."
+    puts "   and saving people docs..."
     load_people
+
+    stride = 100
+    (@docs.size / stride).times do |i|
+      from = i * stride
+      to   = from + stride - 1
+      puts "saving #{from}..#{to}"
+      @db.bulk_save(@docs[from..to])
+    end
+
+  rescue RestClient::RequestFailed
+    puts "failed: #{$!.response}"
+    pp $!.response.headers
+    puts "hmm: #{$!.response.body}"
   end
 
   def compact_hash(hash)
@@ -34,7 +75,8 @@ class PeopleCouchLoader
     @people.each do |person|
       key = person.couch_id
 
-      @db.save_doc(compact_hash('_id' => key,
+      add_doc(compact_hash('_id' => key,
+        :author => @author,
         :aph_id => person.aph_id,
         :birthday => person.birthday,
         :type => 'person',
@@ -55,6 +97,7 @@ class PeopleCouchLoader
 
       pp = compact_hash(
         '_id'     => key,
+        :author => @author,
         :type     => 'person-position',
         :name     => pos.position,
         :position => position_key(pos),
@@ -67,7 +110,7 @@ class PeopleCouchLoader
         pp.delete(:to)
       end
 
-      @db.save_doc(pp)
+      add_doc(pp)
     end
   end
 
@@ -85,6 +128,7 @@ class PeopleCouchLoader
 
       pp = compact_hash( 
         '_id'         => key,
+        :author => @author,
         :person       => person_key,
 
         :type         => 'person-period',
@@ -102,7 +146,7 @@ class PeopleCouchLoader
         :exit_reason  => period.to_why
       )
 
-      @db.save_doc(pp)
+      add_doc(pp)
     end
   end
 

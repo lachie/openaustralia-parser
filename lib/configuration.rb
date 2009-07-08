@@ -29,7 +29,13 @@ class Configuration
 
       @conf.each do |(key,value)|
         if String === value
-          @conf[key] = value.gsub(/:[a-z]+/) {|key| subs[key] }
+          @conf[key] = value.gsub(/:[a-z]+/) do |key|
+						if sub = subs[key]
+							sub
+						else
+							key
+						end
+					end
         end
       end
     end

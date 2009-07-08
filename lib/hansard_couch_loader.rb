@@ -3,43 +3,112 @@ require 'couchrest'
 class HansardCouchLoader
 	def initialize(conf)
 		@conf = conf
+		@author = 'lachie'
 	end
 
 	def setup!
-    @db = CouchRest.database!("http://127.0.0.1:5984/openaustralia")
-    # TODO remove later
-    @db.recreate!
+    @db = CouchRest.database!(@conf.couchdb_url)
+
+		# delete all hansard stuffs
+    docs = @db.view('hansard/all')['rows'].map do |r|
+      {
+        '_id' => r['id'],
+        '_rev' => r['value'],
+        '_deleted' => true
+      }
+    end
+
+    unless docs.empty?
+      puts "deleting existing hansard"
+      deleted = @db.bulk_save(docs)
+      pp deleted
+    end
 	end
 
   def finalise!(*args); end
 
 	def output(debates,date,house)
+		@speeches = []
+		@speech_texts = []
+
+		doc = {
+			'_id' => ['hansard','federal',house.name,date.to_s(:db)].to_key,
+			:author => @author,
+			:date => date,
+			:type => 'hansard',
+			:tree => []
+		}
+
+		tree = doc[:tree]
+		@last_major = nil
+		@last_minor = nil
+
 		debates.items.each do |item|
-
+			# we don't handle these yet!
 			next if Division === item
-
-			doc = {
-				'_id' => item.couch_id,
-				:date => item.date
-			}
 
 			case item
 			when MajorHeading
-				output_major_heading(item,doc)
+				tree << @last_major = output_major_heading(item)
 			when MinorHeading
-				output_minor_heading(item,doc)
+				@last_major[:children] << @last_minor = output_minor_heading(item)
 			when Speech
-				output_speech(item,doc)
-			end
+				speech_doc,speech_text = output_speech(item)
 
-			@db.save_doc(doc)
+				@speeches     << speech_doc
+				@speech_texts << speech_text
+
+				@last_minor[:children] << speech_doc.id
+			end
 		end
+
+		begin
+			unless doc[:tree].empty?
+				@db.save_doc(doc)
+			end
+		rescue RestClient::RequestFailed
+			pp doc
+			puts "failed: #{$!.response}"
+			puts "hmm: #{$!.response.body}"
+		end
+
+		begin
+			unless @speeches.empty?
+				puts "saving #{@speeches.size} speeches"
+
+				stride = 10
+				(@speeches.size / stride).times do |i|
+					from = i * stride
+					to   = from + stride - 1
+					puts "saving speeches #{from}..#{to}"
+
+					loaded = @db.bulk_save( @speeches[from..to] )
+
+					puts "attaching text"
+					(from..to).each_with_index do |index,base_index|
+						speech = loaded[base_index]
+						speech_doc = {'_rev' => speech['rev'], '_id' => speech['id']}
+						@db.put_attachment(speech_doc,'text',@speech_texts[index])
+					end
+				end
+			end
+		rescue RestClient::RequestFailed
+			puts "failed: #{$!.response}"
+			puts "hmm: #{$!.response.body}"
+		end
+
 	end
 
-	def output_speech(speech,doc)
-		doc.merge! :time => speech.time, :type => 'speech', :content => speech.content.to_s
+	def output_speech(speech)
+		doc = CouchRest::Document.new( '_id' => speech.couch_id,
+																	:author => @author,
+																	:date => speech.date,
+																	:time => speech.time,
+																	:type => 'speech'
+																 )
 		
 		speaker = speech.speaker
+
 		case speaker
 		when Period
 			doc[:speaker] = speaker.person.couch_id
@@ -49,13 +118,15 @@ class HansardCouchLoader
 			doc[:speaker_name] = speaker.name.to_hash
 			doc[:unknown_speaker] = true
 		end
+
+		[doc,speech.content.to_s]
 	end
 
-	def output_major_heading(heading,doc)
-		doc.merge! :title => heading.title, :type => 'major-heading'
+	def output_major_heading(heading)
+		{:title => heading.title, :key => heading.couch_id, :children => []}
 	end
 
-	def output_minor_heading(heading,doc)
-		doc.merge! :title => heading.title, :type => 'minor-heading'
+	def output_minor_heading(heading)
+		{:title => heading.title, :key => heading.couch_id, :children => []}
 	end
 end
