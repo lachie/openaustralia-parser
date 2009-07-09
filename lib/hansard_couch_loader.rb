@@ -9,8 +9,11 @@ class HansardCouchLoader
 	def setup!
     @db = CouchRest.database!(@conf.couchdb_url)
 
-		# delete all hansard stuffs
-    docs = @db.view('hansard/all')['rows'].map do |r|
+	end
+
+	# clear out hansard stuff that we want to reload now
+	def clear_date_for_house!(date,house)
+    docs = @db.view('hansard/by_house_and_date',:key => [house.name.to_key, date].to_json)['rows'].map do |r|
       {
         '_id' => r['id'],
         '_rev' => r['value'],
@@ -28,6 +31,8 @@ class HansardCouchLoader
   def finalise!(*args); end
 
 	def output(debates,date,house)
+		clear_date_for_house!(date,house)
+
 		@speeches = []
 		@speech_texts = []
 
@@ -35,6 +40,7 @@ class HansardCouchLoader
 			'_id' => ['hansard','federal',house.name,date.to_s(:db)].to_key,
 			:author => @author,
 			:date => date,
+			:house => house.name.to_key,
 			:type => 'hansard',
 			:tree => []
 		}
@@ -102,6 +108,7 @@ class HansardCouchLoader
 	def output_speech(speech)
 		doc = CouchRest::Document.new( '_id' => speech.couch_id,
 																	:author => @author,
+																	:house => speech.house.name.to_key,
 																	:date => speech.date,
 																	:time => speech.time,
 																	:type => 'speech'

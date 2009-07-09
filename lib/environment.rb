@@ -13,6 +13,8 @@ gem 'log4r'
 
 gem 'mini_magick'
 
+# gem 'couchrest'
+
 # test only
 gem 'rspec'
 gem 'rcov'
