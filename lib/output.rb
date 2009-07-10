@@ -16,7 +16,19 @@ class Output
 	end
 
 	def create!(&block)
-		@outputters = @selections.map {|key| yield @output_classes[key]}
+		@outputters = []
+		@outputters_by_key = {}
+
+		@selections.each {|key| 
+			@outputters << o = yield(@output_classes[key])
+			@outputters_by_key[key] = o
+		}
+	end
+
+	def with(kind)
+		if o = @outputters_by_key[(kind || '').to_sym]
+			yield(o)
+		end
 	end
 
 	def selection_valid?

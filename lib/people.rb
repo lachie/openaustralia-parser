@@ -131,9 +131,8 @@ class People < Array
     PeopleXMLWriter.write(self, people_filename, members_filename, senators_filename, ministers_filename, divisions_filename)
   end
   
-  def download_images(small_image_dir, large_image_dir)
-    downloader = PeopleImageDownloader.new
-    downloader.download(self, small_image_dir, large_image_dir)
+  def download_images(output)
+    PeopleImageDownloader.new.download(self, output)
   end
   
   def all_periods_in_house(house)

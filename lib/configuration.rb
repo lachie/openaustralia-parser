@@ -78,7 +78,7 @@ class Configuration
       puts "WARNING: twfy/my society config not loaded (#{$!})"
     end
   end
-  
+
   # Ruby magic
   def method_missing(method_id)
     name = method_id.id2name

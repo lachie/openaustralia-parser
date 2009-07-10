@@ -8,10 +8,7 @@ class PeopleCouchLoader
   end
 
   def setup!
-    puts @conf.couchdb_url
     @db = CouchRest.database!(@conf.couchdb_url)
-    # TODO remove later
-    #@db.recreate!
 
     docs = @db.view('people/all')['rows'].map do |r|
       {
