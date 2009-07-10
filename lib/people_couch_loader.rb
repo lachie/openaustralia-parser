@@ -72,22 +72,33 @@ class PeopleCouchLoader
     @people.each do |person|
       key = person.couch_id
 
-      add_doc(compact_hash('_id' => key,
+      pdoc = compact_hash('_id' => key,
         :author => @author,
         :aph_id => person.aph_id,
         :birthday => person.birthday,
         :type => 'person',
         :name => person.name.to_hash,
         :alternative_names => person.alternate_names.map {|a| a.to_hash}
-     ))
+      )
 
-     load_people_positions(person,key)
-     load_people_periods(person  ,key)
+      if (current_positions = load_people_positions(person,key)) && !current_positions.empty?
+        pdoc[:current_positions] = current_positions.map {|p|
+          {:key => p['_id'], :name => p[:name]}
+        }
+      end
+
+      if (current_constituencies = load_people_periods(person,key)) && !current_constituencies.empty?
+        pdoc[:current_constituencies] = current_constituencies.map {|p|
+          {:key => p['_id'], :name => p[:name], :constituency => p[:constituency]}
+        }
+      end
+
+      add_doc(pdoc)
     end
   end
 
   def load_people_positions(person,person_key)
-    @slugs ||= Hash.new {|h,k| h[k] = -1}
+    current_positions = []
 
     person.minister_positions.each do |pos|
       key = ['people-positions','federal',pos.minister_count] * '/'
@@ -103,12 +114,16 @@ class PeopleCouchLoader
         :to       => pos.to_date
       )
 
+      current_positions << pp if pos.current?
+
       if pp[:to].year == 9999
         pp.delete(:to)
       end
 
       add_doc(pp)
     end
+
+    current_positions
   end
 
   def position_key(pos)
@@ -116,21 +131,27 @@ class PeopleCouchLoader
   end
 
   def load_people_periods(person,person_key)
+    current_constituencies = []
+
     person.periods.each do |period|
+
       key = ['people-period','federal',period.id_for_house] * '/'
 
-      div   = load_division(period.division, period.state)
+
+      div   = load_constituency(period.division, period.state)
       party = load_party(period.party)
       house = load_house(period.house)
 
       pp = compact_hash( 
         '_id'         => key,
-        :author => @author,
+        :author       => @author,
         :person       => person_key,
 
         :type         => 'person-period',
 
-        :division     => div,
+        :constituency => div['_id'],
+
+        :name         => (period.division || period.state),
 
         :state        => period.state,
         :party        => party,
@@ -143,25 +164,27 @@ class PeopleCouchLoader
         :exit_reason  => period.to_why
       )
 
+      current_constituencies << pp if period.current?
+      
       add_doc(pp)
     end
+
+    current_constituencies
   end
 
-  def division_key(name,state)
-    key = ['divisions','federal',to_key(state)]
-
-    if !name.blank?
-      key << to_key(name)
-    end
-
-    key * '/'
+  def constituency_key(name,state)
+    ['constituencies','federal',to_key(name || state)].to_key
   end
 
-  def load_division(name,state)
-    compact_hash(:key => division_key(name,state),
-                 :name => name,
-                 :state => state
+  def load_constituency(name,state)
+    p = compact_hash(
+                 '_id' => constituency_key(name,state),
+                 :name => (name || state),
+                 :state => state,
+                 :type => 'constituency'
                 )
+    add_doc(p)
+    p
   end
 
   def party_key(party)
