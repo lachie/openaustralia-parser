@@ -12,6 +12,10 @@ class House
   def House.representatives
     House.new(REPRESENTATIVES)
   end
+
+  def couch_id
+    ['houses','federal',name].to_key
+  end
   
   def initialize(name)
     throw "Name of house must '#{REPRESENTATIVES}' or '#{SENATE}'" unless name == REPRESENTATIVES || name == SENATE

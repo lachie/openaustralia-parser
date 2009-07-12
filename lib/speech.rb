@@ -5,7 +5,7 @@ require 'section'
 
 class Speech < Section
   attr_accessor :speaker, :content
-	attr_reader :date, :house, :title, :content
+	attr_reader :date, :house, :title, :content, :count
   
   def initialize(speaker, time, url, count, date, house, logger = nil)
     @speaker = speaker
@@ -14,7 +14,7 @@ class Speech < Section
   end
 
 	def couch_id
-		['hansard','federal',@house.name,'speeches',@date.to_s(:db)].to_key + '/' + @count.to_s
+		['hansard','federal',@house.name,@date.to_s(:db)].to_key + '/' + @count.to_s
 	end
   
   def output(x)

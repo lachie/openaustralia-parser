@@ -1,5 +1,6 @@
 class HeadingBase
-	attr_reader :title, :date, :house
+	attr_reader :title, :date, :house, :count
+
   def initialize(title, count, url, date, house)
     @title, @count, @url, @date, @house = title, count, url, date, house
   end
@@ -20,7 +21,7 @@ class MajorHeading < HeadingBase
   end
 
 	def couch_id
-		['hansard','federal',@house.name,'major-heading',@date.to_s].to_key + '/' + @count.to_s
+		['hansard','federal',@house.name,@date.to_s].to_key + '/' + @count.to_s
 	end
 end
 
@@ -30,6 +31,6 @@ class MinorHeading < HeadingBase
   end
 
 	def couch_id
-		['hansard','federal',@house.name,'minor-heading',@date.to_s].to_key + '/' + @count.to_s
+		['hansard','federal',@house.name,@date.to_s].to_key + '/' + @count.to_s
 	end
 end

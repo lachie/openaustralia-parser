@@ -17,5 +17,9 @@ class Count
   def to_s
     "#{@major}.#{@minor}"
   end
+
+  def to_f
+    to_s.to_f
+  end
 end
 

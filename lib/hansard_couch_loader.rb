@@ -8,12 +8,11 @@ class HansardCouchLoader
 
 	def setup!
     @db = CouchRest.database!(@conf.couchdb_url)
-
 	end
 
 	# clear out hansard stuff that we want to reload now
 	def clear_date_for_house!(date,house)
-    docs = @db.view('hansard/by_house_and_date',:key => [house.name.to_key, date].to_json)['rows'].map do |r|
+    docs = @db.view('hansard/by_house_and_date',:key => [house.couch_id, date])['rows'].map do |r|
       {
         '_id' => r['id'],
         '_rev' => r['value'],
@@ -23,6 +22,7 @@ class HansardCouchLoader
 
     unless docs.empty?
       puts "deleting existing hansard"
+      pp docs
       deleted = @db.bulk_save(docs)
       pp deleted
     end
@@ -36,16 +36,16 @@ class HansardCouchLoader
 		@speeches = []
 		@speech_texts = []
 
-		doc = {
-			'_id' => ['hansard','federal',house.name,date.to_s(:db)].to_key,
+		@docs = [{
+			'_id' => ['hansard', 'federal', house.name, date.to_s(:db)].to_key,
+      :level => 'federal',
 			:author => @author,
 			:date => date,
-			:house => house.name.to_key,
+			:house => house.couch_id,
 			:type => 'hansard',
-			:tree => []
-		}
+      'hansard-tree' => true
+		}]
 
-		tree = doc[:tree]
 		@last_major = nil
 		@last_minor = nil
 
@@ -55,25 +55,24 @@ class HansardCouchLoader
 
 			case item
 			when MajorHeading
-				tree << @last_major = output_major_heading(item)
+				@docs << @last_major = output_major_heading(item)
 			when MinorHeading
-				@last_major[:children] << @last_minor = output_minor_heading(item)
+				@docs << @last_minor = output_minor_heading(item)
 			when Speech
 				speech_doc,speech_text = output_speech(item)
 
 				@speeches     << speech_doc
 				@speech_texts << speech_text
-
-				@last_minor[:children] << speech_doc.id
 			end
 		end
 
 		begin
-			unless doc[:tree].empty?
-				@db.save_doc(doc)
-			end
+      puts "saving #{@docs.size} docs"
+      @docs.in_groups_of(10) {|docs|
+        docs.compact!
+        @db.bulk_save(docs) if docs && !docs.empty?
+      }
 		rescue RestClient::RequestFailed
-			pp doc
 			puts "failed: #{$!.response}"
 			puts "hmm: #{$!.response.body}"
 		end
@@ -108,10 +107,11 @@ class HansardCouchLoader
 	def output_speech(speech)
 		doc = CouchRest::Document.new( '_id' => speech.couch_id,
 																	:author => @author,
-																	:house => speech.house.name.to_key,
+																	:house => speech.house.couch_id,
 																	:date => speech.date,
 																	:time => speech.time,
-																	:type => 'speech'
+																	:type => 'speech',
+                                  'hansard-tree' => true
 																 )
 		
 		speaker = speech.speaker
@@ -126,14 +126,39 @@ class HansardCouchLoader
 			doc[:unknown_speaker] = true
 		end
 
+    doc[:section] = section = speech.count.to_f
+    doc[:path]    = [ @last_minor[:path], section ].flatten
+
 		[doc,speech.content.to_s]
 	end
 
+  def output_heading(heading)
+    section = heading.count.to_f 
+		{
+      :title => heading.title,
+      '_id' => heading.couch_id,
+      :date => heading.date,
+      :house => heading.house.couch_id,
+      :path => [section],
+      :section => section,
+      'hansard-tree' => true
+    }
+  end
+
 	def output_major_heading(heading)
-		{:title => heading.title, :key => heading.couch_id, :children => []}
-	end
+    doc = output_heading(heading)
+    doc[:type] = 'major-heading'
+    doc
+  end
 
 	def output_minor_heading(heading)
-		{:title => heading.title, :key => heading.couch_id, :children => []}
+    doc = output_heading(heading)
+
+    doc[:type] = 'minor-heading'
+
+    doc[:path] = [@last_major[:path]] + doc[:path]
+    doc[:path].flatten!
+
+    doc
 	end
 end
