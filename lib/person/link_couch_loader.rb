@@ -18,10 +18,11 @@ class Person
 			@db.view('all/by_type',:key => 'person', :include_docs => true)['rows'].each do |row|
 				@people_docs << doc = row['doc']
 				@people_lookup[doc['_id']] = doc
+				doc['links'] ||= {}
 			end
 
 			[
-				#[ Person::TweetmpParser , Person::TweetmpCouchLoader  ],
+				[ Person::TweetmpParser , Person::TweetmpCouchLoader  ],
 				[ Person::WebsitesParser, Person::WebsitesCouchLoader ],
 				[ Person::QandaParser   , Person::QandaCouchLoader    ]
 			].each {|(parser_class,writer_class)|
