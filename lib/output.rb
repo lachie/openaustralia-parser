@@ -25,6 +25,10 @@ class Output
 		}
 	end
 
+	def selected?(kind)
+		!! @outputters_by_key[(kind || '').to_sym]
+	end
+
 	def with(kind)
 		if o = @outputters_by_key[(kind || '').to_sym]
 			yield(o)

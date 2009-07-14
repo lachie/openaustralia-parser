@@ -15,7 +15,7 @@ class Person
 
 
   def couch_id
-    ['people',name.full_name].to_key
+    @couch_id ||= ['people',name.full_name].to_key
   end
   
   def initialize(params)

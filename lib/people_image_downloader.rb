@@ -58,6 +58,7 @@ class PeopleImageDownloader
   # Returns nil if page can't be found
   def biography_page_for_person_with_name(text)
     url = "http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Dataset:allmps%20#{URI.escape(text)}"
+    puts "getting full url: #{url}"
     page = @agent.get(url)
 
     # Check if the returned page is a valid one. If not just ignore it
@@ -159,6 +160,7 @@ class PeopleImageDownloader
     img_tag = page.search('div.box').search("img").first
     if img_tag
       relative_image_url = img_tag.attributes['src']
+      puts "relative_image_url: #{relative_image_url}"
       #begin
         #puts "About to lookup image #{relative_image_url}..."
         res = @agent.get(relative_image_url)

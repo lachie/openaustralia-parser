@@ -72,12 +72,13 @@ class PeopleCouchLoader
     @people.each do |person|
       key = person.couch_id
 
-      pdoc = compact_hash('_id' => key,
-        :author => @author,
-        :aph_id => person.aph_id,
-        :birthday => person.birthday,
-        :type => 'person',
-        :name => person.name.to_hash,
+      pdoc = compact_hash(
+        '_id'              => key,
+        :author            => @author,
+        :aph_id            => person.aph_id,
+        :birthday          => person.birthday,
+        :type              => 'person',
+        :name              => person.name.to_hash,
         :alternative_names => person.alternate_names.map {|a| a.to_hash}
       )
 
@@ -87,10 +88,22 @@ class PeopleCouchLoader
         }
       end
 
-      if (current_constituencies = load_people_periods(person,key)) && !current_constituencies.empty?
+      current_constituencies,current_party = load_people_periods(person,key)
+
+      if !current_constituencies.blank?
         pdoc[:current_constituencies] = current_constituencies.map {|p|
-          {:key => p['_id'], :name => p[:name], :constituency => p[:constituency]}
+          {
+            :key => p['_id'],
+            :name => p[:name],
+            :constituency => p[:constituency],
+            :party => p[:party][:name],
+            :party_key => p[:party][:key],
+          }
         }
+      end
+
+      if current_party
+        pdoc[:current_party] = current_party
       end
 
       add_doc(pdoc)
@@ -132,15 +145,14 @@ class PeopleCouchLoader
 
   def load_people_periods(person,person_key)
     current_constituencies = []
+    current_party = nil
 
     person.periods.each do |period|
 
       key = ['people-period','federal',period.id_for_house] * '/'
 
-
       div   = load_constituency(period.division, period.state)
       party = load_party(period.party)
-      house = load_house(period.house)
 
       pp = compact_hash( 
         '_id'         => key,
@@ -155,7 +167,7 @@ class PeopleCouchLoader
 
         :state        => period.state,
         :party        => party,
-        :house        => house,
+        :house        => period.house.couch_id,
 
         :entry_date   => period.from_date,
         :entry_reason => period.from_why,
@@ -164,12 +176,16 @@ class PeopleCouchLoader
         :exit_reason  => period.to_why
       )
 
-      current_constituencies << pp if period.current?
+
+      if period.current?
+        current_constituencies << pp 
+        current_party = party
+      end
       
       add_doc(pp)
     end
 
-    current_constituencies
+    [current_constituencies,current_party]
   end
 
   def constituency_key(name,state)
@@ -188,7 +204,7 @@ class PeopleCouchLoader
   end
 
   def party_key(party)
-    ['parties','federal',to_key(party)] * '/'
+    ['parties','federal',party].to_key
   end
 
   def load_party(party)

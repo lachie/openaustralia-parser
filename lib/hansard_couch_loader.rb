@@ -123,7 +123,13 @@ class HansardCouchLoader
 		when UnknownSpeaker
 			doc[:speaker] = speaker.couch_id
 			doc[:speaker_name] = speaker.name.to_hash
-			doc[:unknown_speaker] = true
+			doc['unknown-speaker'] = true
+    else
+      doc[:speaker] = "people/none"
+      doc[:speaker_name] = {
+        :first => "No", :last => "Speaker"
+      }
+			doc['unknown-speaker'] = true
 		end
 
     doc[:section] = section = speech.count.to_f

@@ -1,13 +1,26 @@
 function(doc) {
   if(doc['hansard-tree']) {
-    if(doc['path'])
+    var key = [doc['date'], doc['house']];
 
-      if(doc['type'] == 'speech')
-        emit(doc['path'],'Speech by '+doc['speaker'])
-      else
-        emit(doc['path'],(doc['title'] || ''))
+    if(doc['path']) {
+      for(elt in doc['path'])
+        key.push(doc['path'][elt]);
 
-    else
-      emit([],null)
+      if(doc['type'] == 'speech') {
+        if(doc['unknown-speaker']) {
+          emit(key, 'Speech by unknown speaker');
+
+        } else {
+          var spkr = doc['speaker_name']
+          var name = ''+spkr['first']+' '+spkr['last'];
+          emit(key, 'Speech by '+name);
+
+        }
+      } else
+        emit(key, (doc['title'] || ''));
+
+    } else {
+      emit(key,null)
+    }
   }
 }
