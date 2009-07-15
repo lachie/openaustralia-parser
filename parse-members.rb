@@ -7,7 +7,7 @@ conf = Configuration.new
 
 output = Output.new(
                     :xml   => PeopleXmlOutput,
-                    :couch => PeopleCouchLoader
+                    :couch => Person::CouchLoader
                    )
 
 OptionParser.new do |opts|

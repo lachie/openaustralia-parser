@@ -18,6 +18,7 @@ class Person
 			@db.view('all/by_type',:key => 'person', :include_docs => true)['rows'].each do |row|
 				@people_docs << doc = row['doc']
 				@people_lookup[doc['_id']] = doc
+
 				doc['links'] ||= {}
 			end
 
@@ -42,13 +43,7 @@ class Person
 
 		def finalise!
 			puts "writing docs..."
-			@people_docs.in_groups_of(10) do |docs|
-				next unless docs
-				docs.compact!
-				next if docs.empty?
-
-				@db.bulk_save(docs)
-			end
+			CouchHelper.new(@conf).bulk_save(@people_docs)
 		end
 	end
 end

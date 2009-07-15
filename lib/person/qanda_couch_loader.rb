@@ -12,7 +12,7 @@ class Person
 		def output
 			@parser.parse(@conf.write_xml_representatives,@conf.write_xml_senators) do |person,link|
 				if p = @people[person.couch_id]
-					p['links']['qanda'] = link
+					p['links']['qanda'] = link.to_s
 				end
 			end
 		end

@@ -11,8 +11,8 @@ class Person
 
 		def save_links(person,params)
 			if p = @people[person.couch_id]
-				p['links']['contact']  = params[:mp_contactdetails] if params[:mp_contactdetails]
-				p['links']['homepage'] = params[:mp_website]        if params[:mp_website]
+				p['links']['contact']  = params[:mp_contactdetails].to_s if params[:mp_contactdetails]
+				p['links']['homepage'] = params[:mp_website].to_s       if params[:mp_website]
 			end
 		end
 
