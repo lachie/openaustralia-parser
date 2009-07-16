@@ -24,4 +24,3 @@ output.create! {|k| k.new(conf,people)}
 output.setup!
 output.output
 output.finalise!
-
