@@ -21,12 +21,13 @@ class LinkXmlWriter
 
 	def output
 		@writers.each do |w|
-			puts w.class
+			puts "writing with #{w.class}..."
 			w.output
 		end
 	end
 
 	def finalise!
+		puts "loading xmls into db..."
 		system(@conf.web_root + "/twfy/scripts/mpinfoin.pl links")
 	end
 end

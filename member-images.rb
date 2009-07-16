@@ -1,12 +1,21 @@
 #!/usr/bin/env ruby
 
 require File.dirname(__FILE__)+'/lib/environment'
+require 'optparse'
 
 conf = Configuration.new
 output = Output.new :couch => Person::ImageCouchLoader,
 										:file => Person::ImageFileWriter
 
-output.select! :couch
+OptionParser.new do |opts|
+	opts.on("--couch", "Load images into couchdb") { output.select! :couch }
+	opts.on("--file" , "Download and save images") { output.select! :file  }
+end.parse!(ARGV)
+
+unless output.selection_valid?
+	puts "You need to supply at least one output option (--file or --couch)"
+	exit!
+end
 
 output.create! {|k| k.new(conf)}
 

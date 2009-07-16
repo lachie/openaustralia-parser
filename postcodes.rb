@@ -2,8 +2,20 @@
 # Load the postcode data directly into the database
 
 require File.dirname(__FILE__)+'/lib/environment'
-
 require 'csv'
+require 'optparse'
+
+output = Output.new :db => Constituency::DbLoader, :couch => Constituency::CouchLoader
+
+OptionParser.new do |opts|
+	opts.on("--couch", "Load postcodes into couchdb") { output.select! :couch }
+	opts.on("--db"   , "Load postcodes into the db" ) { output.select! :db }
+end.parse!(ARGV)
+
+unless output.selection_valid?
+	puts "You need to supply at least one output option (--db or --couch)"
+	exit!
+end
 
 conf = Configuration.new
 
@@ -17,8 +29,6 @@ data.shift
 data.shift
 
 
-output = Output.new :db => Constituency::DbLoader, :couch => Constituency::CouchLoader
-output.select! :couch
 output.create! {|k| k.new(conf)}
 output.setup!
 output.validate!(data)

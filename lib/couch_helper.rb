@@ -1,5 +1,6 @@
 require 'couchrest'
 require 'digest/sha1'
+require 'set'
 
 class CouchHelper
 	def initialize(conf)
@@ -34,12 +35,49 @@ class CouchHelper
 		docs.in_groups_of(stride,false) do |docs|
 			from = i*stride
 			puts "  #{from+1}..#{from+stride}"
-			db.bulk_save(docs)
+
+			results = db.bulk_save(docs)
+
+			handle_errors(results,docs,options)
+
 			i += 1
 		end
 	rescue RestClient::RequestFailed
 		puts "#{$!.class} : #{$!.message}"
 		puts $!.response
+		raise $! if options[:raise_on_error]
+	end
+
+	def handle_errors(results,docs,options)
+		options = {:raise_on_error => true}.update(options)
+		errors = Hash.new {|h,k| h[k] = {}}
+
+		results.each do |res|
+			error = res['error']
+			next unless error
+
+			errors[error][res['id']] = res['reason']
+		end
+
+		if !errors.blank?
+			message = "some errors occurred while saving the docs [#{errors.keys * ', '}]"
+
+			puts message
+			pp errors
+
+			if options[:show_conflicts]
+				(errors['conflict'] || []).each do |(id,error)|
+					puts
+					puts "error: #{error}"
+					doc = docs.find {|f| f['_id'] == id}
+					pp doc
+				end
+			end
+
+			if options[:raise_on_error]
+				raise message
+			end
+		end
 	end
 
 	def calculate_hash(doc)

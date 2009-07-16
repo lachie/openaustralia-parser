@@ -3,10 +3,6 @@ require 'activesupport'
 require 'pp'
 
 class Configuration
-  # TODO: Could have conflicts between these and names in the configuration file
-  attr_reader :database_host, :database_user, :database_password, :database_name, :file_image_path, :members_xml_path, :xml_path,
-    :regmem_pdf_path, :base_dir
-  
   cattr_accessor :local_config_path
   cattr_accessor :root
 
@@ -65,13 +61,7 @@ class Configuration
         'regmem_pdf_path'   => 'REGMEMPDFPATH',
         'base_dir'          => 'BASEDIR',
       }.each do |(ivar,key)|
-        value = if global_conf.key?(ivar)
-                  global_conf[ivar]
-                else
-                  MySociety::Config.get(key)
-                end
-
-        instance_variable_set("@#{ivar}", value)
+				global_conf[ivar] ||= MySociety::Config.get(key)
       end
 
     rescue LoadError
@@ -81,7 +71,7 @@ class Configuration
 
   # Ruby magic
   def method_missing(method_id)
-    name = method_id.id2name
+    name = method_id.to_s
     if global_conf.has_key?(name)
       global_conf[name]
     else

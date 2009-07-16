@@ -1,3 +1,5 @@
+require 'mysql'
+
 module Constituency
   class DbLoader
     def initialize(conf)

@@ -21,18 +21,14 @@ module Constituency
         lookup[key] << line[0]
       }
 
+			keys.uniq!
+
       docs = @db.documents(:keys => keys, :include_docs => 'true')['rows'].map do |row|
         row['doc']['postcodes'] = lookup[row['id']].uniq.sort
         row['doc']
       end
 
-      stride = 100
-      (docs.size / stride).times do |i|
-        from = i * stride
-        to   = from + stride - 1
-        puts "saving #{from}..#{to}"
-        @db.bulk_save(docs[from..to])
-      end
+			CouchHelper.new(@conf).bulk_save(docs,:stride => 100, :show_conflicts => true)
     end
   end
 end
