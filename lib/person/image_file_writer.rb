@@ -30,6 +30,9 @@ class Person
 			small_img = File.join(small_image_path, "#{person.id_count}.jpg")
 			image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT]    ).write(small_img)
 		end
+
+		def finalise!
+		end
 	end
 end
 

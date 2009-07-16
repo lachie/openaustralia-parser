@@ -15,6 +15,7 @@ class Person
 
 		def setup!
 			@db = CouchRest.database!(@conf.couchdb_url)
+			@images = {}
 		end
 
 		def add_attachment(person_doc,name,image)
@@ -26,30 +27,44 @@ class Person
 		end
 
 		def output_image(person,image)
-			puts "fetching for #{person.couch_id}"
+			@images[person.couch_id] = image
+		end
 
-			person_doc = @db.get(person.couch_id)
 
-      @ok = nil
+		def finalise!
+			@db.documents(:keys => @images.keys, :include_docs => true)['rows'].each do |row|
 
-			mime_type = 'image/jpeg' #`file -b -I #{image.path}`.chomp
+				puts "fetching for #{row['id']}"
 
-			puts "writing images for #{person.couch_id}..."
-			add_attachment(person_doc, 'image-original', image)
+				person_doc = row['doc']
+				id = row['id']
+				image      = @images[id]
 
-			image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2])
-			add_attachment(person_doc, 'image-large', image)
+				@ok = nil
 
-			image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT]    )
-			add_attachment(person_doc, 'image-small', image)
+				mime_type = 'image/jpeg' #`file -b -I #{image.path}`.chomp
 
-		rescue RestClient::RequestFailed
-			puts "failed to put attachment"
-			puts $!.response
-      puts $!.backtrace * $/
-			raise $!
-		rescue RestClient::ResourceNotFound
-			puts "WARNING: #{person.couch_id} not found"
+				begin
+					puts "writing images for #{id}..."
+					add_attachment(person_doc, 'image-original', image)
+
+					image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH * 2, @@SMALL_THUMBNAIL_HEIGHT * 2])
+					add_attachment(person_doc, 'image-large', image)
+
+					image.resize("%dx%d" % [@@SMALL_THUMBNAIL_WIDTH    , @@SMALL_THUMBNAIL_HEIGHT]    )
+					add_attachment(person_doc, 'image-small', image)
+
+				rescue RestClient::RequestFailed
+					puts "failed to put attachment"
+					puts $!.response
+					puts $!.backtrace * $/
+					raise $!
+				end
+			end
+
+			# refetch and resave all the docs, to recalc the sha1's
+			docs = @db.documents(:keys => @images.keys, :include_docs => true)['rows'].map {|doc| doc}
+			CouchHelper.new(@conf).bulk_save(docs)
 		end
 	end
 end

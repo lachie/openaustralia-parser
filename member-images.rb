@@ -28,3 +28,5 @@ people = PeopleCSVReader.read_members
 
 puts "Downloading person images..."
 people.download_images(output)
+
+output.finalise!

@@ -101,12 +101,14 @@ class CouchHelper
 		when FalseClass
 			'false'
 		when NilClass
+		when Numeric
+			d << o.to_s
 		when Date
-			o.strftime("%F")
+			d << o.strftime("%F")
 		when DateTime
-			o.strftime("%FT%T")
+			d << o.strftime("%FT%T")
 		when Time
-			o.strftime("%FT%T")
+			d << o.strftime("%FT%T")
 		else
 			raise "unknown object #{o.class} : #{o.inspect}"
 		end
