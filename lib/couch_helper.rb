@@ -19,11 +19,9 @@ class CouchHelper
 		docs = docs.map {|doc|
 			next unless doc
 
-			if doc['_rev']
-				new_hash = calculate_hash(doc)
-				next if doc['sha1'] == new_hash
-				doc['sha1'] = new_hash
-			end
+			sha1 = calculate_hash(doc)
+			next if doc['_rev'] && doc['sha1'] == sha1
+			doc['sha1'] = sha1
 
 			doc
 		}.compact
