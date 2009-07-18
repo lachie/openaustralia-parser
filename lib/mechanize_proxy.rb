@@ -5,6 +5,7 @@
 require 'environment'
 require 'mechanize'
 require 'configuration'
+require 'hpricot'
 
 class MechanizeProxyCache
 	cattr_accessor :perform_caching

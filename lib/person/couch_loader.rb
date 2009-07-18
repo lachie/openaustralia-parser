@@ -51,7 +51,8 @@ class Person
 					'birthday'          => person.birthday,
 					'type'              => 'person',
 					'name'              => person.name.to_hash,
-					'alternative_names' => person.alternate_names.map {|a| a.to_hash}
+					'alternative_names' => person.alternate_names.map {|a| a.to_hash},
+          'twfy_id'           => person.id_count
 				)
 
 				

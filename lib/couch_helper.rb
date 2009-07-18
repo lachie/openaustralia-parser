@@ -46,6 +46,7 @@ class CouchHelper
 		raise $! if options[:raise_on_error]
 	end
 
+
 	def handle_errors(results,docs,options)
 		options = {:raise_on_error => true}.update(options)
 		errors = Hash.new {|h,k| h[k] = {}}
@@ -113,4 +114,19 @@ class CouchHelper
 			raise "unknown object #{o.class} : #{o.inspect}"
 		end
 	end
+
+  def view_hash(name,options={})
+    use_id = options.delete(:use_id)
+    options[:include_docs] = true
+
+    hash = {}
+    view(name,options)['rows'].each do |row|
+      hash[use_id ? row['id'] : row['key']] = row['doc']
+    end
+    hash
+  end
+
+  def method_missing(method,*args,&block)
+    db.send(method,*args,&block)
+  end
 end
