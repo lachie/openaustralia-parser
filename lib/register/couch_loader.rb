@@ -13,7 +13,6 @@ module Register
 
     def setup!
       @db = CouchHelper.new(@conf)
-      mkdir_p @conf.register_images_cache_path
     end
 
     def output!
