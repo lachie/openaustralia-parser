@@ -14,6 +14,13 @@ class MechanizeProxyCache
 
   # By setting cache_subdirectory can put cached files under a subdirectory in the html_cache_path
   attr_accessor :cache_subdirectory
+
+  def self.while_uncached(&block)
+    @old_cached,self.perform_caching = self.perform_caching,false
+    yield
+  ensure
+    self.perform_caching = @old_cached
+  end
   
   def initialize
     @conf = Configuration.new
