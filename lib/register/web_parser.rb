@@ -16,6 +16,13 @@ module Register
 
       mkdir_p @conf.register_images_cache_path
 
+      # debug
+      #reg = registers[10001]
+      #reg['pdf_path'] = File.join(@conf.register_images_cache_path,"people/tony-john-abbott",'original.pdf')
+      #yield(reg)
+
+      #return
+
       puts "fetching info..."
       @agent.get("#{base_url}/").search('//a').each do |a|
         original_url = a['href']
@@ -43,7 +50,9 @@ module Register
 
         register['pdf_etag'] = etag
 
-        path     = File.join(@conf.register_images_cache_path,register['person'])
+        base_path = register['person'].to_key
+        path     = File.join(@conf.register_images_cache_path,base_path)
+        rm_rf(path) rescue nil
         mkdir_p(path)
 
         original = File.join(path,'original.pdf')
@@ -54,7 +63,6 @@ module Register
         register['pdf_path'] = original
 
         yield(register)
-        break #debug
       end
     end
   end

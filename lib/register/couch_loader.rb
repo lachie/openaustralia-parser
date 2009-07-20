@@ -24,6 +24,9 @@ module Register
         rid = pid.sub(%r[^people/], 'register/')
         reg = registers_by_id[rid] || {}
 
+        # debug, forces download!
+        # reg.delete('pdf_etag')
+
         regs[twfy_id.to_i] = reg.update(
           '_id'    => rid,
           'type'   => 'register',
@@ -38,7 +41,16 @@ module Register
         path     = File.dirname(pdf_path)
 
         puts "converting #{File.basename(pdf_path)} into images..."
+        system("rm #{path}/*.jpg")
         system("convert -verbose -colorspace RGB -resize 800 -interlace none -density 300 -quality 50 #{pdf_path} #{path}/page.jpg")
+
+        attachments = register['_attachments'] = {}
+        Dir["#{path}/page*.jpg"].each do |jpg|
+          puts "attaching #{jpg}"
+          a = attachments[File.basename(jpg,'.jpg')] = {} 
+          a['content_type'] = 'image/jpeg'
+          a['data'] = Base64.encode64(File.read(jpg)).gsub(/\n/,'')
+        end
       end
 
       puts "saving registers..."
