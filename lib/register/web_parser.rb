@@ -41,28 +41,35 @@ module Register
 
         filename = File.basename(original_url)
 
+        base_path = register['person'].to_key
+        path     = File.join(@conf.register_images_cache_path,base_path)
+        original = File.join(path,'original.pdf')
+        register['pdf_path'] = original
+        mkdir_p(path)
 
         # test the fetched etag against the existing etag
         if register['pdf_etag'] == etag
-          puts "#{filename} etag unchanged, skipping..."
-          next
+          puts "#{filename} etag unchanged, skipping download..."
+          register['exists'] = true
+
+          yield(register)
+        else
+
+          register['exists'] = false
+
+          register['pdf_etag'] = etag
+
+          rm_rf(path) rescue nil
+          mkdir_p(path)
+
+
+          puts "downloading pdf #{filename}..."
+          @agent.get(original_url).save_as(original)
+
+          yield(register)
         end
 
-        register['pdf_etag'] = etag
-
-        base_path = register['person'].to_key
-        path     = File.join(@conf.register_images_cache_path,base_path)
-        rm_rf(path) rescue nil
-        mkdir_p(path)
-
-        original = File.join(path,'original.pdf')
-
-        puts "downloading pdf #{filename}..."
-        @agent.get(original_url).save_as(original)
-
-        register['pdf_path'] = original
-
-        yield(register)
+        break
       end
     end
   end

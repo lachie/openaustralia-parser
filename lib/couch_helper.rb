@@ -11,7 +11,7 @@ class CouchHelper
 		@db ||= CouchRest.database!(@conf.couchdb_url)
 	end
 
-	def bulk_save(docs,options={})
+	def bulk_save(docs,options={},&block)
 		options = {
 			:stride => 10
 		}.merge(options)
@@ -31,6 +31,9 @@ class CouchHelper
 
 		i = 0
 		docs.in_groups_of(stride,false) do |docs|
+
+      docs.each(&block)
+
 			from = i*stride
 			puts "  #{from+1}..#{from+stride}"
 
